@@ -5,6 +5,9 @@
 #include <time.h>
 #include <microhttpd.h>
 
+#include "request.h"
+#include "member.h"
+
 /**
  * Invalid method page.
  */
@@ -24,6 +27,7 @@
 "<html>" \
 "<head>" \
 "<ul>" \
+"<li><a href=\"/member_list\">Members</a></li>" \
 "<li><a href=\"/upload\">File Upload</a></li>" \
 "<li><a href=\"/table\">Table</a></li>" \
 "<li><a href=\"/chpass\">Change password</a></li>" \
@@ -132,12 +136,6 @@ struct Session {
 /**
  * Data kept per request.
  */
-struct Request {
-  struct Session *session; /* Associated session */
-  struct MHD_PostProcessor *pp; /* Post processor handling form data (IF this is a POST request) */
-	void *data;
-	const struct PostIterator *pi;
-};
 
 struct LoginRequest { 
   char user[64];
@@ -559,19 +557,6 @@ void chpass_process(struct Request *request)
 }
 
 
-struct PostIterator {
-	const char *url;
-	size_t data_size;
-	int (*iterator)(void *cls,
-	       enum MHD_ValueKind kind,
-	       const char *key,
-	       const char *filename,
-	       const char *content_type,
-	       const char *transfer_encoding,
-	       const char *data, uint64_t off, size_t size);
-	void (*process)(struct Request *request);
-  int need_session;
-};
 
 const struct PostIterator *find_iter(const char *url)
 {
@@ -701,19 +686,20 @@ create_response(void *cls,
 	}
 
   if ((!strcmp(method, MHD_HTTP_METHOD_GET)) || (!strcmp(method, MHD_HTTP_METHOD_HEAD))) {
-      /* find out which page to serve */
-			if (!session->logged_in) {
-				return serve_simple_form(LOGIN_FORM, "text/html", request, connection);
-			} else {
-				i=0;
-				while ((pages[i].url != NULL) && (0 != strcmp(pages[i].url, url)) )
-					i++;
-				ret = pages[i].handler(pages[i].handler_cls, pages[i].mime, request, connection);
-				if (ret != MHD_YES)
-					fprintf(stderr, "Failed to create page for `%s'\n", url);
-				return ret;
-			}
-    }
+		/* find out which page to serve */
+		if (!session->logged_in) {
+			return serve_simple_form(LOGIN_FORM, "text/html", request, connection);
+		} else {
+			i=0;
+			while ((pages[i].url != NULL) && (0 != strcmp(pages[i].url, url)) )
+				i++;
+			ret = pages[i].handler(pages[i].handler_cls, pages[i].mime, request, connection);
+			if (ret != MHD_YES)
+				fprintf(stderr, "Failed to create page for `%s'\n", url);
+			return ret;
+		}
+	}
+
   /* unsupported HTTP method */
   response = MHD_create_response_from_buffer(strlen(METHOD_ERROR),
 					      (void *) METHOD_ERROR,
@@ -794,6 +780,13 @@ static void expire_sessions(void)
 int main(int argc, char *const *argv) 
 {
   struct MHD_Daemon *d;
+	int n;
+
+	if ((n=read_member_list("/home/andreas/ADDRLIST/addr.txt")) == -1) {	
+		return 1;
+	}
+	
+  printf("read %d members\n", n);
 
   if (argc != 2) {
 		printf("%s PORT\n", argv[0]);

@@ -1,11 +1,14 @@
 ALL = post_example main
+
+CFLAGS = -Wall -Werror
+
 all: $(ALL)
 
 clean:
 	rm -f *.o $(ALL)
 
 post_example: post_example.c
-	gcc -o post_example post_example.c -lmicrohttpd
+	gcc -o post_example $(CFLAGS) post_example.c -lmicrohttpd
 
 main: main.c
-	gcc -o main main.c -lmicrohttpd
+	gcc -o main $(CFLAGS) main.c -lmicrohttpd

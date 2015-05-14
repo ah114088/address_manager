@@ -120,19 +120,20 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 
 	default:
 		if (mfs->pos < nmember + 1) {
+			const struct member_struct *m = &member[mfs->pos-1];
 			char *p = buf;
       p = stpcpy(p, "<tr><td>");
-			p = cpy_umlaut(p, member[mfs->pos-1].first);
+			p = cpy_umlaut(p, m->first);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, member[mfs->pos-1].second);
+			p = cpy_umlaut(p, m->second);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, member[mfs->pos-1].street);
+			p = cpy_umlaut(p, m->street);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, member[mfs->pos-1].house);
+			p = cpy_umlaut(p, m->house);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, member[mfs->pos-1].zip);
+			p = cpy_umlaut(p, m->zip);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, member[mfs->pos-1].city);
+			p = cpy_umlaut(p, m->city);
       p = stpcpy(p, "</td></tr>");
 			mfs->pos++;
 			return p - buf;

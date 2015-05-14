@@ -279,66 +279,6 @@ add_session_cookie(struct Session *session,
     }
 }
 
-
-/**
- * Handler that returns a simple static HTTP page that
- * is passed in via 'cls'.
- *
- * @param cls a 'const char *' with the HTML webpage to return
- * @param mime mime type to use
- * @param session session handle
- * @param connection connection to use
- */
-static int serve_simple_form(const void *cls, const char *mime, 
-		struct Request *request, struct MHD_Connection *connection)
-{
-  int ret;
-  const char *form = cls;
-  struct MHD_Response *response;
-  struct Session *session = request->session;
-
-  /* return static form */
-  response = MHD_create_response_from_buffer(strlen(form), (void *) form, MHD_RESPMEM_PERSISTENT);
-  if (NULL == response)
-    return MHD_NO;
-  add_session_cookie(session, response);
-  MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
-  ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
-  MHD_destroy_response(response);
-  return ret;
-}
-
-
-
-/**
- * Handler used to generate a 404 reply.
- *
- * @param cls a 'const char *' with the HTML webpage to return
- * @param mime mime type to use
- * @param session session handle
- * @param connection connection to use
- */
-static int
-not_found_page(const void *cls,
-		const char *mime,
-		struct Request *request,
-		struct MHD_Connection *connection)
-{
-  int ret;
-  struct MHD_Response *response;
-
-  /* unsupported HTTP method */
-  response = MHD_create_response_from_buffer(strlen(NOT_FOUND_ERROR),
-					      (void *) NOT_FOUND_ERROR,
-					      MHD_RESPMEM_PERSISTENT);
-  if (NULL == response)
-    return MHD_NO;
-  ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
-  MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
-  MHD_destroy_response(response);
-  return ret;
-}
-
 struct {
 	struct {
 		char value[2];
@@ -355,21 +295,15 @@ struct {
 #define VAL4(s) ((s.value[0] == '4')?"selected ":"")
 #define VAL5(s) ((s.value[0] == '5')?"selected ":"")
 
-static int
-table_page(const void *cls, const char *mime,
-		 struct Request *request,
-		 struct MHD_Connection *connection)
+static struct MHD_Response *table_form(struct Request *request)
 {
-  int ret;
   char *reply;
   struct MHD_Response *response;
 	const size_t buf_size = 1024*8;
-  struct Session *session = request->session;
 
-  /* "selected" */
   reply = malloc(buf_size);
   if (NULL == reply)
-    return MHD_NO;
+    return NULL;
 
   snprintf(reply, buf_size, TABLE_PAGE_VAR, 
 		VAL1(device_data.dropbox[0]),
@@ -385,53 +319,56 @@ table_page(const void *cls, const char *mime,
 
   /* return static form */
   response = MHD_create_response_from_buffer(strlen(reply), (void *) reply, MHD_RESPMEM_MUST_FREE);
-  if (NULL == response)
-    return MHD_NO;
-  add_session_cookie(session, response);
-  MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
-  ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
-  MHD_destroy_response(response);
-  return ret;
+  if (!response) {
+		free(reply);
+	}
+	return response;
 }
-static int
-upload_done(const void *cls, const char *mime,
-		 struct Request *request,
-		 struct MHD_Connection *connection)
+
+static struct MHD_Response *upload_done_form(struct Request *request)
 {
-  int ret;
   char *reply;
   struct MHD_Response *response;
-	struct Session *session = request->session;
   struct UploadRequest *ur = (struct UploadRequest *)request->data;
 
   reply = malloc(strlen(UPLOAD_DONE) + 15 + 1);
   if (NULL == reply)
-    return MHD_NO;
+    return NULL;
   snprintf(reply, strlen(UPLOAD_DONE) + 15 + 1, UPLOAD_DONE, ur->file_size);
   /* return static form */
   response = MHD_create_response_from_buffer(strlen(reply), (void *) reply, MHD_RESPMEM_MUST_FREE);
-  if (NULL == response)
-    return MHD_NO;
-  add_session_cookie(session, response);
-  MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
-  ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
-  MHD_destroy_response(response);
-  return ret;
+  if (!response)
+		free(reply);
+	return response;
 }
 
-/**
- * List of all pages served by this HTTP server.
- */
-static struct Page pages[] = {
-    { "/", "text/html", &serve_simple_form, MAIN_PAGE },
-    { "/upload", "text/html", &serve_simple_form, FILE_UPLOAD },
-    { "/table", "text/html", &table_page, NULL },
-    { "/do_upload", "text/html", &upload_done, FILE_UPLOAD },
-    { "/login", "text/html", &serve_simple_form, LOGIN_FORM },
-    { "/logout", "text/html", &serve_simple_form, LOGOUT_FORM },
-    { "/chpass", "text/html", &serve_simple_form, CHPASS_FORM },
-    { NULL, NULL, &not_found_page, NULL } /* 404 */
-  };
+#define SIMPLE_FORM(name, string) \
+static struct MHD_Response *name(struct Request *request) \
+{ \
+  return MHD_create_response_from_buffer(strlen(string), (void *)string, MHD_RESPMEM_PERSISTENT); \
+}
+
+SIMPLE_FORM(main_form, MAIN_PAGE)
+SIMPLE_FORM(login_form, LOGIN_FORM)
+SIMPLE_FORM(chpass_form, CHPASS_FORM)
+SIMPLE_FORM(upload_form, FILE_UPLOAD)
+
+struct html_response {
+		const char *url;
+		struct MHD_Response *(*handler)(struct Request *request);
+};
+
+static struct html_response html_page[] = {
+	{ "/",            &main_form, },
+	{ "/login",       &login_form },
+	{ "/member_list", &member_form },
+	{ "/chpass",      &chpass_form },
+	{ "/table",       &table_form },
+	{ "/upload",      &upload_form },
+	{ "/do_upload",   &upload_done_form },
+};
+#define NHTMLPAGES (sizeof(html_page)/sizeof(html_page[0]))
+
 
 void to_str(uint64_t off, size_t size, size_t max, const char *data, char *dest)
 {
@@ -686,27 +623,32 @@ create_response(void *cls,
 	}
 
   if ((!strcmp(method, MHD_HTTP_METHOD_GET)) || (!strcmp(method, MHD_HTTP_METHOD_HEAD))) {
+		struct MHD_Response *response;
 		/* find out which page to serve */
-		if (!session->logged_in) {
-			return serve_simple_form(LOGIN_FORM, "text/html", request, connection);
-		} else {
-			if (!strcmp(url, "/member_list")) {
-				struct MHD_Response *response;
-				response = member_form(request);
+		if (!session->logged_in)
+			url = "/login";
+		for (i=0; i<NHTMLPAGES; i++)
+			if (!strcmp(url, html_page[i].url)) {
+				response = html_page[i].handler(request);
+				if (!response)
+					return MHD_NO;
 				add_session_cookie(session, response);
 				MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, "text/html");
 				ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
-  			MHD_destroy_response(response);
+				MHD_destroy_response(response);
 				return ret;
 			}
-			i=0;
-			while ((pages[i].url != NULL) && (0 != strcmp(pages[i].url, url)) )
-				i++;
-			ret = pages[i].handler(pages[i].handler_cls, pages[i].mime, request, connection);
-			if (ret != MHD_YES)
-				fprintf(stderr, "Failed to create page for `%s'\n", url);
-			return ret;
-		}
+
+		/* unsupported HTTP page */
+		response = MHD_create_response_from_buffer(strlen(NOT_FOUND_ERROR),
+							(void *) NOT_FOUND_ERROR, MHD_RESPMEM_PERSISTENT);
+		if (!response)
+			return MHD_NO;
+		ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
+		if (ret != MHD_YES)
+			fprintf(stderr, "Failed to create page for `%s'\n", url);
+		MHD_destroy_response(response);
+		return ret;
 	}
 
   /* unsupported HTTP method */

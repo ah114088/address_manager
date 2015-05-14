@@ -18,10 +18,11 @@ class Locality
 end
 
 class LocalityList < Array
-	def initialize file
+	def initialize file, formation
 		File.open(file).each { |l|
 			s = l.split("\t")
-			if s[7].length > 0
+			next if s[7].length == 0
+			if formation.nil? || s[3] == formation || s[5] == formation || s[7] == formation 
 				self << Locality.new(s[1], s[2], s[3], s[5], s[7])
 			end
 		}
@@ -108,8 +109,8 @@ end
 
 class PersonGenerator
 	attr_reader :zip_list, :formation
-	def initialize zip_file, first_file, second_file
-		@zip_list = LocalityList.new zip_file
+	def initialize zip_file, first_file, second_file, formation
+		@zip_list = LocalityList.new zip_file, formation
 		@first = NameList.new first_file
 		@second = NameList.new second_file
 		@mail_provider = MailProviderList.new
@@ -155,14 +156,24 @@ end
 
 # ------------------------
 
-# ---- main ----
-
-if ARGV.length < 6
-	puts "generator.rb <number_of_members> <zip_code_file> <firstname_file> <secondname_file> <person_file> <formation_file>"
+def usage
+	puts "generator.rb [-select <formation>] <number_of_members> <zip_code_file> <firstname_file> <secondname_file> <person_file> <formation_file>"
   exit 1
 end
+# ---- main ----
 
-g = PersonGenerator.new(ARGV[1], ARGV[2], ARGV[3])
+usage if ARGV.length < 2
+
+formation = nil
+if ARGV[0] == "-select"
+	ARGV.shift
+	formation = ARGV.shift
+end
+usage if ARGV.length != 6
+
+# ----------
+
+g = PersonGenerator.new(ARGV[1], ARGV[2], ARGV[3], formation)
 
 File.open(ARGV[4], "w") { |file|
 	ARGV[0].to_i.times {

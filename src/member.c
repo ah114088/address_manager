@@ -62,41 +62,6 @@ struct member_form_state {
 	int pos;
 };
 
-char *stpcpy_umlaut(char *dst, const char *str)
-{
-	static const struct {
-		char utf;
-		const char *subst;
-	} map[] = {
-		{ 0xAE, "&Auml;" },
-		{ 0x96, "&Ouml;" },
-		{ 0x9C, "&Uuml;" },
-		{ 0xA4, "&auml;" },
-		{ 0xB6, "&ouml;" },
-		{ 0xBC, "&uuml;" },
-		{ 0x9F, "&szlig;" },
-	};
-	int i;
-	char *p = dst;
-	for (i=0; str[i]; i++) {
-		if (str[i] == 0xC3) {
-			int j;
-			for (j=0; j<sizeof(map)/sizeof(map[0]); j++)
-				if (str[i+1] == map[j].utf) {
-					p = stpcpy(p, map[j].subst);
-					i++;
-					break;
-				}
-			if (j == sizeof(map)/sizeof(map[0])) {
-				fprintf(stderr, "UTF-8 character %hhx\n!!", str[i+1]);
-			}
-		} else {
-		  *p++ = str[i];
-		}
-	}
-	return p;
-}
-
 static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
 {
 	struct member_form_state *mfs = cls;
@@ -104,7 +69,9 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 
 	switch (mfs->pos) {
 	case 0:
-		p = stpcpy(p, "<!DOCTYPE html><html><body><div id=\"main\"><table><tr><th>Vorname</th><th>Nachname</th><th>Strasse</th><th>Haus-Nr.</th><th>PLZ</th><th>Ort</th></tr>");
+		p = stpcpy(p, "<!DOCTYPE html><html><head><title>Mitglieder</title>" \
+				"<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">" \
+			"</head><body><div id=\"main\"><table><tr><th>Vorname</th><th>Nachname</th><th>Strasse</th><th>Haus-Nr.</th><th>PLZ</th><th>Ort</th></tr>");
 		mfs->pos++;
 		break;
 
@@ -112,17 +79,17 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 		if (mfs->pos < nmember + 1) {
 			const struct member_struct *m = &member[mfs->pos-1];
       p = stpcpy(p, "<tr><td>");
-			p = stpcpy_umlaut(p, m->first);
+			p = stpcpy(p, m->first);
       p = stpcpy(p, "</td><td>");
-			p = stpcpy_umlaut(p, m->second);
+			p = stpcpy(p, m->second);
       p = stpcpy(p, "</td><td>");
-			p = stpcpy_umlaut(p, m->street);
+			p = stpcpy(p, m->street);
       p = stpcpy(p, "</td><td>");
-			p = stpcpy_umlaut(p, m->house);
+			p = stpcpy(p, m->house);
       p = stpcpy(p, "</td><td>");
-			p = stpcpy_umlaut(p, m->zip);
+			p = stpcpy(p, m->zip);
       p = stpcpy(p, "</td><td>");
-			p = stpcpy_umlaut(p, m->city);
+			p = stpcpy(p, m->city);
       p = stpcpy(p, "</td></tr>");
 			mfs->pos++;
 			break;

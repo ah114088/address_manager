@@ -163,41 +163,30 @@ static struct Session *sessions;
  * Return the session handle for this connection, or
  * create one if this is a new user.
  */
-static struct Session *
-get_session(struct MHD_Connection *connection)
+static struct Session *get_session(struct MHD_Connection *connection)
 {
   struct Session *ret;
   const char *cookie;
 
   cookie = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, COOKIE_NAME);
-  if (cookie != NULL)
-    {
-      /* find existing session */
-      ret = sessions;
-      while (NULL != ret)
-	{
-	  if (0 == strcmp(cookie, ret->sid))
-	    break;
-	  ret = ret->next;
+  if (cookie) {
+		/* find existing session */
+		for (ret = sessions; ret; ret = ret->next)
+			if (!strcmp(cookie, ret->sid)) {
+				ret->rc++;
+				return ret;
+			}
 	}
-      if (NULL != ret)
-	{
-	  ret->rc++;
-	  return ret;
-	}
-    }
+
   /* create fresh session */
-  ret = calloc(1, sizeof(struct Session));
-  if (NULL == ret)
-    {
-      fprintf(stderr, "calloc error: %s\n", strerror (errno));
-      return NULL;
-    }
+  if (!(ret=calloc(1, sizeof(struct Session)))) {
+		fprintf(stderr, "calloc error\n");
+		return NULL;
+	}
+
   /* not a super-secure way to generate a random session ID,
      but should do for a simple example... */
-  snprintf(ret->sid,
-	    sizeof(ret->sid),
-	    "%X%X%X%X",
+  snprintf(ret->sid, sizeof(ret->sid), "%X%X%X%X",
 	    (unsigned int) rand(),
 	    (unsigned int) rand(),
 	    (unsigned int) rand(),
@@ -211,72 +200,13 @@ get_session(struct MHD_Connection *connection)
 }
 
 
-/**
- * Type of handler that generates a reply.
- *
- * @param cls content for the page (handler-specific)
- * @param mime mime type to use
- * @param session session information
- * @param connection connection to process
- * @param MHD_YES on success, MHD_NO on failure
- */
-typedef int (*PageHandler)(const void *cls,
-			   const char *mime,
-			   struct Request *request,
-			   struct MHD_Connection *connection);
-
-
-/**
- * Entry we generate for each page served.
- */
-struct Page
-{
-  /**
-   * Acceptable URL for this page.
-   */
-  const char *url;
-
-  /**
-   * Mime type to set for the page.
-   */
-  const char *mime;
-
-  /**
-   * Handler to call to generate response.
-   */
-  PageHandler handler;
-
-  /**
-   * Extra argument to handler.
-   */
-  const void *handler_cls;
-};
-
-
-/**
- * Add header to response to set a session cookie.
- *
- * @param session session to use
- * @param response response to modify
- */
-static void
-add_session_cookie(struct Session *session,
-		    struct MHD_Response *response)
+static void add_session_cookie(struct Session *session, struct MHD_Response *response)
 {
   char cstr[256];
-  snprintf(cstr,
-	    sizeof(cstr),
-	    "%s=%s",
-	    COOKIE_NAME,
-	    session->sid);
-  if (MHD_NO ==
-      MHD_add_response_header(response,
-			       MHD_HTTP_HEADER_SET_COOKIE,
-			       cstr))
-    {
-      fprintf(stderr,
-	       "Failed to set session cookie header!\n");
-    }
+  snprintf(cstr, sizeof(cstr), "%s=%s", COOKIE_NAME, session->sid);
+  if (MHD_NO == MHD_add_response_header(response, MHD_HTTP_HEADER_SET_COOKIE, cstr)) {
+		fprintf(stderr, "Failed to set session cookie header!\n");
+	}
 }
 
 struct {
@@ -602,7 +532,7 @@ create_response(void *cls,
 			MHD_post_process(request->pp, upload_data, *upload_data_size);
 
     /* fprintf(stderr, "upload_data_size: %zu\n", *upload_data_size); */
-		if (0 != *upload_data_size) {
+		if (*upload_data_size) {
 			*upload_data_size = 0;
     	/* fprintf(stderr, "upload_data_size set to 0\n"); */
 			return MHD_YES;
@@ -678,11 +608,11 @@ request_completed_callback(void *cls,
 {
   struct Request *request = *con_cls;
 
-  if (NULL == request)
+  if (!request)
     return;
-  if (NULL != request->session)
+  if (request->session)
     request->session->rc--;
-  if (NULL != request->pp)
+  if (request->pp)
     MHD_destroy_post_processor(request->pp);
 	/* fprintf(stderr, "free() request %p\n", request); */
   if (request->data)

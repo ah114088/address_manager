@@ -57,20 +57,12 @@ int read_member_list(const char *file)
 	return i;
 }
 
-#if 0
-struct MHD_Response *member_form(struct Request *request)
-{	
-	const char *page = "<!DOCTYPE html><html><body><p>Hello world!</p></body></html>";
-	return MHD_create_response_from_buffer(strlen(page), (void *)page, MHD_RESPMEM_PERSISTENT);
-}
-#else
-
 #define MAXPAGESIZE 1024
 struct member_form_state {
 	int pos;
 };
 
-char *cpy_umlaut(char *dst, const char *str)
+char *stpcpy_umlaut(char *dst, const char *str)
 {
 	static const struct {
 		char utf;
@@ -107,50 +99,44 @@ char *cpy_umlaut(char *dst, const char *str)
 
 static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
 {
-	int len;
-	const char *head = "<!DOCTYPE html><html><body><table><tr><th>Vorname</th><th>Nachname</th><th>Strasse</th><th>Haus-Nr.</th><th>PLZ</th><th>Ort</th></tr>";
-	const char *tail = "</table></body></html>";
 	struct member_form_state *mfs = cls;
+	char *p = buf;
+
 	switch (mfs->pos) {
 	case 0:
-		len = strlen(head);
-		memcpy(buf, head, len);
+		p = stpcpy(p, "<!DOCTYPE html><html><body><div id=\"main\"><table><tr><th>Vorname</th><th>Nachname</th><th>Strasse</th><th>Haus-Nr.</th><th>PLZ</th><th>Ort</th></tr>");
 		mfs->pos++;
-		return len;
+		break;
 
 	default:
 		if (mfs->pos < nmember + 1) {
 			const struct member_struct *m = &member[mfs->pos-1];
-			char *p = buf;
       p = stpcpy(p, "<tr><td>");
-			p = cpy_umlaut(p, m->first);
+			p = stpcpy_umlaut(p, m->first);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, m->second);
+			p = stpcpy_umlaut(p, m->second);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, m->street);
+			p = stpcpy_umlaut(p, m->street);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, m->house);
+			p = stpcpy_umlaut(p, m->house);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, m->zip);
+			p = stpcpy_umlaut(p, m->zip);
       p = stpcpy(p, "</td><td>");
-			p = cpy_umlaut(p, m->city);
+			p = stpcpy_umlaut(p, m->city);
       p = stpcpy(p, "</td></tr>");
 			mfs->pos++;
-			return p - buf;
+			break;
+			
 		} else if (mfs->pos == nmember + 1) {
-			len = strlen(tail);
-			memcpy(buf, tail, len);
+			p = stpcpy(p, "</table></div></body></html>");
 			mfs->pos++;
-			return len;
+			break;
 		} else /* nmember + 2 */ {
 			return MHD_CONTENT_READER_END_OF_STREAM; /* no more bytes */
 		}
 	}	
-}
 
-static void member_form_free(void *cls)
-{
-	free(cls);
+	return p - buf;
 }
 
 struct MHD_Response *member_form(struct Request *request)
@@ -158,6 +144,5 @@ struct MHD_Response *member_form(struct Request *request)
 	struct member_form_state *mfs;
 	if (!(mfs = (struct member_form_state *)calloc(1, sizeof(struct member_form_state))))
 		return NULL;
-	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &member_form_reader, mfs, &member_form_free);
+	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &member_form_reader, mfs, &free);
 }
-#endif

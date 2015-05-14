@@ -690,6 +690,15 @@ create_response(void *cls,
 		if (!session->logged_in) {
 			return serve_simple_form(LOGIN_FORM, "text/html", request, connection);
 		} else {
+			if (!strcmp(url, "/member_list")) {
+				struct MHD_Response *response;
+				response = member_form(request);
+				add_session_cookie(session, response);
+				MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, "text/html");
+				ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
+  			MHD_destroy_response(response);
+				return ret;
+			}
 			i=0;
 			while ((pages[i].url != NULL) && (0 != strcmp(pages[i].url, url)) )
 				i++;
@@ -704,9 +713,7 @@ create_response(void *cls,
   response = MHD_create_response_from_buffer(strlen(METHOD_ERROR),
 					      (void *) METHOD_ERROR,
 					      MHD_RESPMEM_PERSISTENT);
-  ret = MHD_queue_response(connection,
-			    MHD_HTTP_METHOD_NOT_ACCEPTABLE,
-			    response);
+  ret = MHD_queue_response(connection, MHD_HTTP_METHOD_NOT_ACCEPTABLE, response);
   MHD_destroy_response(response);
   return ret;
 }

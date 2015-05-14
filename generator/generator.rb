@@ -1,12 +1,13 @@
 #!/usr/bin/ruby
 
 class Locality
-	attr_accessor :zip, :name, :country, :kreis
-	def initialize zip, name, country, kreis
+	attr_accessor :zip, :name, :country, :province, :circle
+	def initialize zip, name, country, province, circle
 		@zip = zip
 		@name = name
 		@country = country
-		@kreis = kreis
+		@province = province
+		@circle = circle
 	end
 	def occur
 		1
@@ -21,7 +22,7 @@ class LocalityList < Array
 		File.open(file).each { |l|
 			s = l.split("\t")
 			if s[7].length > 0
-				self << Locality.new(s[1], s[2], s[3], s[7])
+				self << Locality.new(s[1], s[2], s[3], s[5], s[7])
 			end
 		}
 	end
@@ -74,15 +75,25 @@ class FormationList < Array
 		self << Formation.new("Bund")
 		locations.each { |l|
 			i = self.find_index { |item| item.name == l.country }
-			if i.nil? 
-				self << Formation.new(l.country, 0) 
-			end
+			next if ! i.nil?
+			self << Formation.new(l.country, 0) 
 		}
 		locations.each { |l|
-			i = self.find_index { |item| item.name == l.kreis }
-			if i.nil?
+			next if l.province.length == 0
+			i = self.find_index { |item| item.name == l.province }	
+			next if ! i.nil?
+			country_index = self.find_index { |item| item.name == l.country }
+			self << Formation.new(l.province, country_index) 
+		}
+		locations.each { |l|
+			i = self.find_index { |item| item.name == l.circle }
+			next if ! i.nil?
+			if l.province.length == 0
 				country_index = self.find_index { |item| item.name == l.country }
-				self << Formation.new(l.kreis, country_index) 
+				self << Formation.new(l.circle, country_index) 
+			else
+				province_index = self.find_index { |item| item.name == l.province }
+				self << Formation.new(l.circle, province_index) 
 			end
 		}
 	end
@@ -137,7 +148,7 @@ class PersonGenerator
 
 		p.email = "#{convert_umlaut(first).downcase}.#{convert_umlaut(second).downcase}@#{generate(@mail_provider).name}"
 
-		p.findex = @formation.find_index	{ |item| locality.kreis == item.name }
+		p.findex = @formation.find_index	{ |item| locality.circle == item.name }
 		p
 	end
 end

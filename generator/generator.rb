@@ -95,7 +95,7 @@ class PersonGenerator
 		second = generate(@second).name
 		p.first = first
 		p.second = second
-		p.street = "#{generate(@first).name}-#{generate(@second).name}-Strasse"	
+		p.street = "#{generate(@first).name}-#{generate(@second).name}-Str."	
 		p.house = rand(100)+1
 
 		locality = generate(@zip_list)

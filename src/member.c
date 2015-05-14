@@ -17,7 +17,7 @@ struct member_struct {
 	char *email;
 };
 
-#define MAX_MEMBER 50
+#define MAX_MEMBER 100
 #define MAX_STR 100
 struct member_struct member[MAX_MEMBER];
 int nmember;
@@ -102,14 +102,13 @@ char *cpy_umlaut(char *dst, const char *str)
 		  *p++ = str[i];
 		}
 	}
-	fprintf(stderr, ">%s< added %d chars\n", str, p - dst);
 	return p;
 }
 
 static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
 {
 	int len;
-	const char *head = "<!DOCTYPE html><html><body><table><tr><th>Vorname</th><th>Nachname</th></tr>";
+	const char *head = "<!DOCTYPE html><html><body><table><tr><th>Vorname</th><th>Nachname</th><th>Strasse</th><th>Haus-Nr.</th><th>PLZ</th><th>Ort</th></tr>";
 	const char *tail = "</table></body></html>";
 	struct member_form_state *mfs = cls;
 	switch (mfs->pos) {
@@ -126,6 +125,14 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 			p = cpy_umlaut(p, member[mfs->pos-1].first);
       p = stpcpy(p, "</td><td>");
 			p = cpy_umlaut(p, member[mfs->pos-1].second);
+      p = stpcpy(p, "</td><td>");
+			p = cpy_umlaut(p, member[mfs->pos-1].street);
+      p = stpcpy(p, "</td><td>");
+			p = cpy_umlaut(p, member[mfs->pos-1].house);
+      p = stpcpy(p, "</td><td>");
+			p = cpy_umlaut(p, member[mfs->pos-1].zip);
+      p = stpcpy(p, "</td><td>");
+			p = cpy_umlaut(p, member[mfs->pos-1].city);
       p = stpcpy(p, "</td></tr>");
 			mfs->pos++;
 			return p - buf;

@@ -18,16 +18,18 @@ struct member_struct {
 };
 
 #define MAX_MEMBER 50
+#define MAX_STR 100
 struct member_struct member[MAX_MEMBER];
 int nmember;
 
+// UTF-8
 int read_member_list(const char *file)
 {
 	FILE *fp;
-	char buffer[8][100];
+	char buffer[8][MAX_STR];
 	int i = 0;
 
-	if (!(fp=fopen(file, "r")))
+	if (!(fp=fopen(file, "r"))) 
 		return -1;
 
 	while (fscanf(fp, "%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\n]\n", 
@@ -68,20 +70,73 @@ struct member_form_state {
 	int pos;
 };
 
+char *cpy_umlaut(char *dst, const char *str)
+{
+	static const struct {
+		char utf;
+		const char *subst;
+	} map[] = {
+		{ 0xAE, "&Auml;" },
+		{ 0x96, "&Ouml;" },
+		{ 0x9C, "&Uuml;" },
+		{ 0xA4, "&auml;" },
+		{ 0xB6, "&ouml;" },
+		{ 0xBC, "&uuml;" },
+		{ 0x9F, "&szlig;" },
+	};
+	int i;
+	char *p = dst;
+	for (i=0; str[i]; i++) {
+		if (str[i] == 0xC3) {
+			int j;
+			for (j=0; j<sizeof(map)/sizeof(map[0]); j++)
+				if (str[i+1] == map[j].utf) {
+					p = stpcpy(p, map[j].subst);
+					i++;
+					break;
+				}
+			if (j == sizeof(map)/sizeof(map[0])) {
+				fprintf(stderr, "UTF-8 character %hhx\n!!", str[i+1]);
+			}
+		} else {
+		  *p++ = str[i];
+		}
+	}
+	fprintf(stderr, ">%s< added %d chars\n", str, p - dst);
+	return p;
+}
+
 static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
 {
 	int len;
-	const char *page = "<!DOCTYPE html><html><body><p>Hello world!</p></body></html>";
+	const char *head = "<!DOCTYPE html><html><body><table><tr><th>Vorname</th><th>Nachname</th></tr>";
+	const char *tail = "</table></body></html>";
 	struct member_form_state *mfs = cls;
 	switch (mfs->pos) {
 	case 0:
-		len = strlen(page);
-		memcpy(buf, page, len);
+		len = strlen(head);
+		memcpy(buf, head, len);
 		mfs->pos++;
 		return len;
 
 	default:
-		return MHD_CONTENT_READER_END_OF_STREAM; /* no more bytes */
+		if (mfs->pos < nmember + 1) {
+			char *p = buf;
+      p = stpcpy(p, "<tr><td>");
+			p = cpy_umlaut(p, member[mfs->pos-1].first);
+      p = stpcpy(p, "</td><td>");
+			p = cpy_umlaut(p, member[mfs->pos-1].second);
+      p = stpcpy(p, "</td></tr>");
+			mfs->pos++;
+			return p - buf;
+		} else if (mfs->pos == nmember + 1) {
+			len = strlen(tail);
+			memcpy(buf, tail, len);
+			mfs->pos++;
+			return len;
+		} else /* nmember + 2 */ {
+			return MHD_CONTENT_READER_END_OF_STREAM; /* no more bytes */
+		}
 	}	
 }
 

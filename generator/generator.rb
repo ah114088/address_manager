@@ -1,11 +1,12 @@
 #!/usr/bin/ruby
 
 class Locality
-	attr_accessor :zip, :name, :country
-	def initialize zip, name, country
+	attr_accessor :zip, :name, :country, :kreis
+	def initialize zip, name, country, kreis
 		@zip = zip
 		@name = name
 		@country = country
+		@kreis = kreis
 	end
 	def occur
 		1
@@ -19,7 +20,9 @@ class LocalityList < Array
 	def initialize file
 		File.open(file).each { |l|
 			s = l.split("\t")
-			self << Locality.new(s[1], s[2], s[3])
+			if s[7].length > 0
+				self << Locality.new(s[1], s[2], s[3], s[7])
+			end
 		}
 	end
 	def sum
@@ -58,19 +61,48 @@ class MailProviderList < Array
 	end
 end
 
+class Formation
+	attr_accessor :name, :sform
+	def initialize name, sform = -1
+		@name = name
+		@sform = sform
+	end
+end
+
+class FormationList < Array
+	def initialize locations
+		self << Formation.new("Bund")
+		locations.each { |l|
+			i = self.find_index { |item| item.name == l.country }
+			if i.nil? 
+				self << Formation.new(l.country, 0) 
+			end
+		}
+		locations.each { |l|
+			i = self.find_index { |item| item.name == l.kreis }
+			if i.nil?
+				country_index = self.find_index { |item| item.name == l.country }
+				self << Formation.new(l.kreis, country_index) 
+			end
+		}
+	end
+end
+
 class Person
-	attr_accessor :first, :second, :street, :house, :zip, :city, :country, :email
-	def print
-  	puts "#{@first}\t#{@second}\t#{@street}\t#{@house}\t#{@zip}\t#{@city}\t#{@country}\t#{@email}"
+	attr_accessor :first, :second, :street, :house, :zip, :city, :country, :email, :findex
+	def print o = STDOUT
+  	o.puts "#{@first}\t#{@second}\t#{@street}\t#{@house}\t#{@zip}\t#{@city}\t#{@country}\t#{@email}\t#{@findex}"
 	end
 end
 
 class PersonGenerator
+	attr_reader :zip_list, :formation
 	def initialize zip_file, first_file, second_file
 		@zip_list = LocalityList.new zip_file
 		@first = NameList.new first_file
 		@second = NameList.new second_file
 		@mail_provider = MailProviderList.new
+		@formation = FormationList.new @zip_list
 	end
 	def generate list
 		number = rand(list.sum - 1) + 1
@@ -104,22 +136,35 @@ class PersonGenerator
 		p.country = locality.country
 
 		p.email = "#{convert_umlaut(first).downcase}.#{convert_umlaut(second).downcase}@#{generate(@mail_provider).name}"
+
+		p.findex = @formation.find_index	{ |item| locality.kreis == item.name }
 		p
 	end
 end
 
+# ------------------------
+
 # ---- main ----
 
-if ARGV.length < 4 
-	puts "generator.rb <number_of_members> <zip_code_file> <firstname_file> <secondname_file>"
+if ARGV.length < 6
+	puts "generator.rb <number_of_members> <zip_code_file> <firstname_file> <secondname_file> <person_file> <formation_file>"
   exit 1
 end
 
 g = PersonGenerator.new(ARGV[1], ARGV[2], ARGV[3])
 
-ARGV[0].to_i.times {
-	p = g.get_person
-  p.print
+File.open(ARGV[4], "w") { |file|
+	ARGV[0].to_i.times {
+		p = g.get_person
+		p.print file
+	}
 }
 
+File.open(ARGV[5], "w") { |file|
+	i = 0
+	g.formation.each { |f|
+		file.puts "#{i}\t#{f.name}\t#{f.sform}"
+		i += 1
+	}
+}
 exit 0

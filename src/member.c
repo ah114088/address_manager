@@ -101,9 +101,34 @@ int read_formation_list(const char *file)
 	return i;
 }
 
+int member_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
+	       const char *filename, const char *content_type, const char *transfer_encoding,
+	       const char *data, uint64_t off, size_t size)
+{
+  struct Request *request = cls;
+	struct MemberRequest *mr = (struct MemberRequest *)request->data;
+
+  if (!strcmp("fid", key)) {
+		to_str(off, size, sizeof(mr->fid), data, mr->fid);		
+		return MHD_YES;
+	}
+  return MHD_YES;
+}
+
+static int in_formation(int member_formation, int fid)
+{
+	while (member_formation >= 0) {
+		if (member_formation == fid)
+			return 1;
+		member_formation = formation[member_formation].super;
+	}
+	return 0;
+}
+
 #define MAXPAGESIZE 1024
 struct member_form_state {
 	int pos;
+	int fid; /* selector */
 };
 
 static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
@@ -111,52 +136,66 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 	struct member_form_state *mfs = cls;
 	char *p = buf;
 
-	switch (mfs->pos) {
-	case 0:
+	if (mfs->pos == 0) {
 		p = add_header(p, "Mitglieder");
-		p = stpcpy(p, "<div id=\"main\"><table><tr><th>Vorname</th><th>Nachname</th><th>Straße</th><th>Haus-Nr.</th><th>PLZ</th><th>Ort</th><th>Gliederung</th></tr>");
+		p = stpcpy(p, "<div id=\"main\">" \
+			"<form action=\"/member\" method=\"POST\"><p>Gliederung: <input name=\"fid\" type=\"number\"></p>" \
+			"<input type=\"submit\" value=\"Abrufen\"></form>" \
+			"<table><tr><th>Vorname</th><th>Nachname</th><th>Straße</th><th>Haus-Nr.</th>" \
+			"<th>PLZ</th><th>Ort</th><th>Gliederung</th></tr>");
 		mfs->pos++;
-		break;
+		return p - buf;
+	}
 
-	default:
-		if (mfs->pos < nmember + 1) {
-			const struct member_struct *m = &member[mfs->pos-1];
-      p = stpcpy(p, "<tr><td>");
+	while (mfs->pos < nmember + 1) {
+		const struct member_struct *m = &member[mfs->pos-1];
+
+		if (in_formation(m->formation, mfs->fid)) {
+			p = stpcpy(p, "<tr><td>");
 			p = stpcpy(p, m->first);
-      p = stpcpy(p, "</td><td>");
+			p = stpcpy(p, "</td><td>");
 			p = stpcpy(p, m->second);
-      p = stpcpy(p, "</td><td>");
+			p = stpcpy(p, "</td><td>");
 			p = stpcpy(p, m->street);
-      p = stpcpy(p, "</td><td>");
+			p = stpcpy(p, "</td><td>");
 			p = stpcpy(p, m->house);
-      p = stpcpy(p, "</td><td>");
+			p = stpcpy(p, "</td><td>");
 			p = stpcpy(p, m->zip);
-      p = stpcpy(p, "</td><td>");
+			p = stpcpy(p, "</td><td>");
 			p = stpcpy(p, m->city);
-      p = stpcpy(p, "</td><td>");
+			p = stpcpy(p, "</td><td>");
 			p = stpcpy(p, formation[m->formation].name);
-      p = stpcpy(p, "</td></tr>");
+			p = stpcpy(p, "</td></tr>");
+	
 			mfs->pos++;
-			break;
-			
-		} else if (mfs->pos == nmember + 1) {
-			p = stpcpy(p, "</table></div>");
-			p = add_footer(p);
-			mfs->pos++;
-			break;
-		} else /* nmember + 2 */ {
-			return MHD_CONTENT_READER_END_OF_STREAM; /* no more bytes */
+			return p - buf;
 		}
-	}	
+		mfs->pos++;
+	} 
 
-	return p - buf;
+	if (mfs->pos == nmember + 1) {
+		p = stpcpy(p, "</table></div>");
+		p = add_footer(p);
+		mfs->pos++;
+		return p - buf;
+	}
+
+	/* nmember + 2 */
+	return MHD_CONTENT_READER_END_OF_STREAM; /* no more bytes */
 }
 
 struct MHD_Response *member_form(struct Request *request)
 {
 	struct member_form_state *mfs;
+
 	if (!(mfs = (struct member_form_state *)calloc(1, sizeof(struct member_form_state))))
 		return NULL;
+
+	if (request->data) {
+		struct MemberRequest *mr = request->data;
+		if (sscanf(mr->fid, "%d", &mfs->fid) != 1 || mfs->fid >= nformation|| mfs->fid < 0)
+			fprintf(stderr, "invalid fid: %s\n", mr->fid);
+	}
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &member_form_reader, mfs, &free);
 }
 

@@ -35,7 +35,7 @@
 #define MAIN_PAGE \
 HEADER \
 "<ul>" \
-"<li><a href=\"/member_list\">Members</a></li>" \
+"<li><a href=\"/member\">Members</a></li>" \
 "<li><a href=\"/formation_list\">Formations</a></li>" \
 "<li><a href=\"/upload\">File Upload</a></li>" \
 "<li><a href=\"/table\">Table</a></li>" \
@@ -167,6 +167,7 @@ struct TableRequest {
 struct ChpassRequest { 
   char newpassword[64];
 };
+
 /**
  * Linked list of all active sessions.  Yes, O(n) but a
  * hash table would be overkill for a simple example...
@@ -325,7 +326,7 @@ struct html_response {
 static struct html_response html_page[] = {
 	{ "/",               &main_form, },
 	{ "/login",          &login_form },
-	{ "/member_list",    &member_form },
+	{ "/member",         &member_form },
 	{ "/formation_list", &formation_form },
 	{ "/chpass",         &chpass_form },
 	{ "/table",          &table_form },
@@ -468,6 +469,7 @@ const struct PostIterator *find_iter(const char *url)
 		{ "/logout",    0,                            NULL,            logout_process, 1 },
 		{ "/table",     sizeof(struct TableRequest),  table_iterator,  table_process,  1 },
 		{ "/do_upload", sizeof(struct UploadRequest), upload_iterator, upload_process, 1 },
+		{ "/member",    sizeof(struct MemberRequest), member_iterator, NULL, 1 },
 	};
 	int i;
 	
@@ -556,7 +558,8 @@ create_response(void *cls,
 						return MHD_NO; /* internal error */
 					}
 				}
-			}
+			} else
+				fprintf(stderr, "Unknown POST request for url `%s'\n", url);
 		}
 	}
   session = request->session;

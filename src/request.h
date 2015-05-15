@@ -25,5 +25,6 @@ struct Request {
 
 char *add_header(char *p, const char *title);
 char *add_footer(char *p);
+void to_str(uint64_t off, size_t size, size_t max, const char *data, char *dest);
 
 #endif

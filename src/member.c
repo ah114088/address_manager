@@ -131,16 +131,32 @@ struct member_form_state {
 	int fid; /* selector */
 };
 
+/*
+			"<form action=\"/member\" method=\"POST\"><p>Gliederung: <input name=\"fid\" type=\"number\">"
+			"<input type=\"submit\" value=\"Abrufen\"></p></form>"
+*/
+
+/*
+    pos:
+			0 static
+			1 formation
+			2 static
+			3 member
+			4 static
+*/
+
 static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
 {
 	struct member_form_state *mfs = cls;
 	char *p = buf;
 
 	if (mfs->pos == 0) {
+		int i;
 		p = add_header(p, "Mitglieder");
-		p = stpcpy(p, "<div id=\"main\">" \
-			"<form action=\"/member\" method=\"POST\"><p>Gliederung: <input name=\"fid\" type=\"number\"></p>" \
-			"<input type=\"submit\" value=\"Abrufen\"></form>" \
+		p = stpcpy(p, "<div id=\"main\"><form action=\"/member\" method=\"POST\"><p><select name=\"fid\">");
+		for (i=0; i<nformation; i++)
+			p += sprintf(p, "<option %svalue=\"%d\">%s</option>", mfs->fid == i ? "selected ":"", i, formation[i].name);
+		p = stpcpy(p, "</select><input type=\"submit\" value=\"Abrufen\"></p></form>" \
 			"<table><tr><th>Vorname</th><th>Nachname</th><th>Straße</th><th>Haus-Nr.</th>" \
 			"<th>PLZ</th><th>Ort</th><th>Gliederung</th></tr>");
 		mfs->pos++;

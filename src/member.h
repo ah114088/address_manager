@@ -4,4 +4,7 @@
 int read_member_list(const char *file);
 struct MHD_Response *member_form(struct Request *request);
 
+int read_formation_list(const char *file);
+struct MHD_Response *formation_form(struct Request *request);
+
 #endif

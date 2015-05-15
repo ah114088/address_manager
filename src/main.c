@@ -28,6 +28,7 @@
 "<head>" \
 "<ul>" \
 "<li><a href=\"/member_list\">Members</a></li>" \
+"<li><a href=\"/formation_list\">Formations</a></li>" \
 "<li><a href=\"/upload\">File Upload</a></li>" \
 "<li><a href=\"/table\">Table</a></li>" \
 "<li><a href=\"/chpass\">Change password</a></li>" \
@@ -289,13 +290,14 @@ struct html_response {
 };
 
 static struct html_response html_page[] = {
-	{ "/",            &main_form, },
-	{ "/login",       &login_form },
-	{ "/member_list", &member_form },
-	{ "/chpass",      &chpass_form },
-	{ "/table",       &table_form },
-	{ "/upload",      &upload_form },
-	{ "/do_upload",   &upload_done_form },
+	{ "/",               &main_form, },
+	{ "/login",          &login_form },
+	{ "/member_list",    &member_form },
+	{ "/formation_list", &formation_form },
+	{ "/chpass",         &chpass_form },
+	{ "/table",          &table_form },
+	{ "/upload",         &upload_form },
+	{ "/do_upload",      &upload_done_form },
 };
 #define NHTMLPAGES (sizeof(html_page)/sizeof(html_page[0]))
 
@@ -652,25 +654,25 @@ static void expire_sessions(void)
 }
 
 
-/**
- * Call with the port number as the only argument.
- * Never terminates (other than by signals, such as CTRL-C).
- */
 int main(int argc, char *const *argv) 
 {
   struct MHD_Daemon *d;
 	int n;
 
-	if ((n=read_member_list("/home/andreas/ADDRLIST/addr.txt")) == -1) {	
+  if (argc != 4) {
+		printf("usage: %s <port> <member_file> <formation_file>\n", argv[0]);
 		return 1;
 	}
-	
+
+	if ((n=read_member_list(argv[2])) == -1) {	
+		return 1;
+	}
   printf("read %d members\n", n);
 
-  if (argc != 2) {
-		printf("%s PORT\n", argv[0]);
+	if ((n=read_formation_list(argv[3])) == -1) {	
 		return 1;
 	}
+  printf("read %d formations\n", n);
 
   /* initialize PRNG */
   srand((unsigned int) time(NULL));

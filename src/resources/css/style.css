@@ -1,5 +1,12 @@
-* { 
-    background: lightblue; 
+#top { 
+	background: #00AFEC; 
+	color: white; 
+	font-size:26px;
+	text-align:center;
+}
+
+*, #main { 
+	background: lightblue; 
 }
 
 table, th, td {

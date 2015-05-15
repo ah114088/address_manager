@@ -138,6 +138,7 @@ struct Session {
 char *add_header(char *p, const char *title)
 {
 	p += sprintf(p, HEADER_PART1 "<title>%s</title>" HEADER_PART2, title);
+	p = stpcpy(p, "<div id=\"top\">Addressverwaltung</div>");
 	return p;
 }
 char *add_footer(char *p)
@@ -611,6 +612,7 @@ create_response(void *cls,
 		if ((response = file_based_response(url, &mime))) {
 			add_session_cookie(session, response);
 			MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
+			MHD_add_response_header(response, MHD_HTTP_HEADER_CACHE_CONTROL, "max-age=60");
 			ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
 			MHD_destroy_response(response);
 			return ret;

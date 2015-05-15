@@ -12,8 +12,9 @@
 #define CSS_LINK "<link rel=\"stylesheet\" type=\"text/css\" href=\"css/style.css\">"
 
 #define HEADER_PART1 "<!DOCTYPE html><html><head>"
-#define HEADER_PART2 "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"></head><body>"
+#define HEADER_PART2 "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"></head>" CSS_LINK "<body>"
 
+#define HEADER HEADER_PART1 HEADER_PART2 
 #define FOOTER "</body></html>"
 
 /**
@@ -27,13 +28,12 @@
 #define NOT_FOUND_ERROR "<html><head><title>Not found</title></head><body>Go away.</body></html>"
 
 
-#define FILE_UPLOAD "<html><form action=\"/do_upload\" enctype=\"multipart/form-data\" method=\"post\"> <p> Please specify a file, or a set of files:<br> <input type=\"file\" name=\"datafile\" size=\"40\"> </p> <div> <input type=\"submit\" value=\"Send\"> </div> </form></html>"
+#define FILE_UPLOAD HEADER "<form action=\"/do_upload\" enctype=\"multipart/form-data\" method=\"post\"> <p> Please specify a file, or a set of files:<br> <input type=\"file\" name=\"datafile\" size=\"40\"> </p> <div> <input type=\"submit\" value=\"Send\"> </div> </form>" FOOTER
 
 #define UPLOAD_DONE "<html><p>Uploaded file has %zu bytes. <a href=\"/upload\">Next upload</a></p></html>"
 
 #define MAIN_PAGE \
-"<html>" \
-"<head>" \
+HEADER \
 "<ul>" \
 "<li><a href=\"/member_list\">Members</a></li>" \
 "<li><a href=\"/formation_list\">Formations</a></li>" \
@@ -43,13 +43,10 @@
 "</ul>" \
 "<p><form action=\"/logout\" method=\"post\">" \
 "<input type=\"submit\" value=\"Logout\">" \
-"</form></p>" \
-"</body>" \
-"</html>"
+"</form></p>" FOOTER
 
 #define TABLE_PAGE_VAR \
-"<html>" \
-"<head>" \
+HEADER \
 "<title>My Page</title>" \
 "</head>" \
 "<body>" \
@@ -81,9 +78,7 @@
 "</tr>" \
 "</table>" \
 "<button type=\"submit\">Submit</button>" \
-"</form>" \
-"</body>" \
-"</html>"
+"</form>" FOOTER
 
 #define LOGIN_FORM "<html><body>" \
 "<p><form action=\"/\" method=\"post\">" \
@@ -100,13 +95,12 @@
 "</form></p>" \
 "</body></html>"
 
-#define CHPASS_FORM "<html><body>" \
+#define CHPASS_FORM HEADER \
 "<p><form action=\"/chpass\" method=\"post\">" \
 "<p>New password:<br />" \
 "Password:<input name=\"newpassword\" type=\"password\" size=\"12\" maxlength=\"12\"><br />" \
 "<input type=\"submit\" value=\"Change\">" \
-"</form></p>" \
-"</body></html>"
+"</form></p>" FOOTER
 
 /**
  * Name of our cookie.
@@ -178,44 +172,64 @@ struct ChpassRequest {
  */
 static struct Session *sessions;
 
+struct Session_match_iterator {
+	struct Session *session_list;
+	struct Session *session;
+};
+
+static int match_cookie(void *cls, enum MHD_ValueKind kind, const char *key, const char *value)
+{
+  struct Session *session;
+	struct Session_match_iterator *m = cls;
+
+	if (m->session || strcmp(key, COOKIE_NAME))
+		return MHD_YES;
+
+	for (session = m->session_list; session; session = session->next) {
+		if (!strcmp(value, session->sid)) {
+			m->session = (void *)session;
+			break;
+		}
+	}
+
+	return MHD_YES;
+}
 /**
  * Return the session handle for this connection, or
  * create one if this is a new user.
  */
 static struct Session *get_session(struct MHD_Connection *connection)
 {
-  struct Session *ret;
-  const char *cookie;
+  struct Session *session;
+	struct Session_match_iterator m = { sessions, NULL };
 
-  cookie = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, COOKIE_NAME);
-  if (cookie) {
-		/* find existing session */
-		for (ret = sessions; ret; ret = ret->next)
-			if (!strcmp(cookie, ret->sid)) {
-				ret->rc++;
-				return ret;
-			}
+	MHD_get_connection_values(connection, MHD_COOKIE_KIND, &match_cookie, &m);
+
+	session = m.session;
+  if (session) {
+		session->rc++;
+		return session;
 	}
 
   /* create fresh session */
-  if (!(ret=calloc(1, sizeof(struct Session)))) {
+  if (!(session=calloc(1, sizeof(struct Session)))) {
 		fprintf(stderr, "calloc error\n");
 		return NULL;
 	}
 
   /* not a super-secure way to generate a random session ID,
      but should do for a simple example... */
-  snprintf(ret->sid, sizeof(ret->sid), "%X%X%X%X",
+  snprintf(session->sid, sizeof(session->sid), "%X%X%X%X",
 	    (unsigned int) rand(),
 	    (unsigned int) rand(),
 	    (unsigned int) rand(),
 	    (unsigned int) rand());
-  fprintf(stderr, "new session %s\n", ret->sid);
-  ret->rc++;
-  ret->start = time(NULL);
-  ret->next = sessions;
-  sessions = ret;
-  return ret;
+  fprintf(stderr, "new session %s\n", session->sid);
+  session->rc++;
+  session->start = time(NULL);
+  session->next = sessions;
+  sessions = session;
+  return session;
 }
 
 
@@ -578,8 +592,10 @@ create_response(void *cls,
 		const char *mime = "text/html";
 
 		/* find out which page to serve */
-		if (!session->logged_in)
+		if (!session->logged_in) {
+			fprintf(stderr, "not logged in\n");
 			url = "/login";
+		}
 		for (i=0; i<NHTMLPAGES; i++)
 			if (!strcmp(url, html_page[i].url)) {
 				response = html_page[i].handler(request);

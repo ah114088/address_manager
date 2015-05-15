@@ -1,21 +1,18 @@
 CC = gcc
 LD = gcc
 
-ALL = post_example main
+ALL = main
 
-CFLAGS = -Wall -Werror
+CFLAGS = -Wall -Werror -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 
 
 all: $(ALL)
 
 clean:
 	rm -f *.o $(ALL)
 
-post_example: post_example.o
-	@$(LD) -o $@ post_example.o -lmicrohttpd
-	@echo " [LD]        $@"
-
-main: main.o member.o
-	@$(LD) -o $@ main.o member.o -lmicrohttpd
+MAIN_OBJ = main.o member.o file.o
+main: $(MAIN_OBJ)
+	@$(LD) -o $@ $(MAIN_OBJ) -lmicrohttpd
 	@echo " [LD]        $@"
 
 %.o: %.c

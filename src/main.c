@@ -7,6 +7,9 @@
 
 #include "request.h"
 #include "member.h"
+#include "file.h"
+
+#define CSS_LINK "<link rel=\"stylesheet\" type=\"text/css\" href=\"css/style.css\">"
 
 #define HEADER_PART1 "<!DOCTYPE html><html><head>"
 #define HEADER_PART2 "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"></head><body>"
@@ -459,6 +462,7 @@ const struct PostIterator *find_iter(const char *url)
 	return NULL;
 }
 
+
 /**
  * Main MHD callback for handling requests.
  *
@@ -571,6 +575,8 @@ create_response(void *cls,
 
   if ((!strcmp(method, MHD_HTTP_METHOD_GET)) || (!strcmp(method, MHD_HTTP_METHOD_HEAD))) {
 		struct MHD_Response *response;
+		const char *mime = "text/html";
+
 		/* find out which page to serve */
 		if (!session->logged_in)
 			url = "/login";
@@ -580,11 +586,19 @@ create_response(void *cls,
 				if (!response)
 					return MHD_NO;
 				add_session_cookie(session, response);
-				MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, "text/html");
+				MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
 				ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
 				MHD_destroy_response(response);
 				return ret;
 			}
+
+		if ((response = file_based_response(url, &mime))) {
+			add_session_cookie(session, response);
+			MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
+			ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
+			MHD_destroy_response(response);
+			return ret;
+		}
 
 		/* unsupported HTTP page */
 		response = MHD_create_response_from_buffer(strlen(NOT_FOUND_ERROR),

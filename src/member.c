@@ -113,9 +113,8 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 
 	switch (mfs->pos) {
 	case 0:
-		p = stpcpy(p, "<!DOCTYPE html><html><head><title>Mitglieder</title>" \
-				"<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">" \
-			"</head><body><div id=\"main\"><table><tr><th>Vorname</th><th>Nachname</th><th>Straße</th><th>Haus-Nr.</th><th>PLZ</th><th>Ort</th><th>Gliederung</th></tr>");
+		p = add_header(p, "Mitglieder");
+		p = stpcpy(p, "<div id=\"main\"><table><tr><th>Vorname</th><th>Nachname</th><th>Straße</th><th>Haus-Nr.</th><th>PLZ</th><th>Ort</th><th>Gliederung</th></tr>");
 		mfs->pos++;
 		break;
 
@@ -141,7 +140,8 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 			break;
 			
 		} else if (mfs->pos == nmember + 1) {
-			p = stpcpy(p, "</table></div></body></html>");
+			p = stpcpy(p, "</table></div>");
+			p = add_footer(p);
 			mfs->pos++;
 			break;
 		} else /* nmember + 2 */ {
@@ -171,9 +171,8 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 
 	switch (ffs->pos) {
 	case 0:
-		p = stpcpy(p, "<!DOCTYPE html><html><head><title>Formationen</title>" \
-				"<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">" \
-			"</head><body><div id=\"main\"><table><tr><th>ID</th><th>Gliederung</th><th>Übergliederung</th></tr>");
+		p = add_header(p, "Gliederungen");
+		p = stpcpy(p, "<body><div id=\"main\"><table><tr><th>ID</th><th>Gliederung</th><th>Übergliederung</th></tr>");
 		ffs->pos++;
 		break;
 
@@ -191,7 +190,8 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 			break;
 			
 		} else if (ffs->pos == nformation + 1) {
-			p = stpcpy(p, "</table></div></body></html>");
+			p = stpcpy(p, "</table></div>");
+			p = add_footer(p);
 			ffs->pos++;
 			break;
 		} else /* nformation + 2 */ {

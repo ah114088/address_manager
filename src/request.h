@@ -23,4 +23,7 @@ struct Request {
 	const struct PostIterator *pi;
 };
 
+char *add_header(char *p, const char *title);
+char *add_footer(char *p);
+
 #endif

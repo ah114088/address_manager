@@ -8,6 +8,11 @@
 #include "request.h"
 #include "member.h"
 
+#define HEADER_PART1 "<!DOCTYPE html><html><head>"
+#define HEADER_PART2 "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"></head><body>"
+
+#define FOOTER "</body></html>"
+
 /**
  * Invalid method page.
  */
@@ -132,6 +137,16 @@ struct Session {
 
   int logged_in;
 };
+
+char *add_header(char *p, const char *title)
+{
+	p += sprintf(p, HEADER_PART1 "<title>%s</title>" HEADER_PART2, title);
+	return p;
+}
+char *add_footer(char *p)
+{
+	return stpcpy(p, FOOTER);
+}
 
 
 /**

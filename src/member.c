@@ -196,3 +196,13 @@ struct MHD_Response *member_form(struct Request *request)
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &member_form_reader, mfs, &free);
 }
 
+int member_count(int fid)
+{
+	int i = 0;
+	const struct member_struct *m;
+
+	for (m = member_list; m; m = m->next)
+		if (in_formation(m->formation, fid))
+			i++;
+	return i;
+}

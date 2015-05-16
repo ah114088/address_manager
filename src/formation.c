@@ -6,6 +6,7 @@
 #include "request.h"
 #include "user.h"
 #include "formation.h"
+#include "member.h"
 
 static struct formation_struct *formation_list = NULL;
 static int nformation;
@@ -109,7 +110,7 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 	switch (ffs->pos) {
 	case 0:
 		p = add_header(p, "Gliederungen");
-		p = stpcpy(p, "<body><div id=\"main\"><table><tr><th>ID</th><th>Gliederung</th><th>Übergliederung</th></tr>");
+		p = stpcpy(p, "<body><div id=\"main\"><table><tr><th>Gliederung</th><th>Mitglieder</th></tr>");
 		ffs->pos++;
 		ffs->f = formation_list;
 		return p - buf;
@@ -118,11 +119,9 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 		while (ffs->f) {
 			if (in_formation(ffs->f->fid, user->fid)) {
 				p = stpcpy(p, "<tr><td>");
-				p += sprintf(p, "%d", ffs->f->fid);
-				p = stpcpy(p, "</td><td>");
 				p = stpcpy(p, ffs->f->name);
 				p = stpcpy(p, "</td><td>");
-				p += sprintf(p, "%d",  ffs->f->super ? ffs->f->super->fid : -1);
+				p += sprintf(p, "%d", member_count(ffs->f->fid));
 				p = stpcpy(p, "</td></tr>");
 				ffs->f = ffs->f->next;
 				return p - buf;

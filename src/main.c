@@ -44,49 +44,10 @@
 #define NOT_FOUND_ERROR "<html><head><title>Not found</title></head><body>Go away.</body></html>"
 
 
-#define FILE_UPLOAD HEADER "<form action=\"/do_upload\" enctype=\"multipart/form-data\" method=\"post\"> <p> Please specify a file, or a set of files:<br> <input type=\"file\" name=\"datafile\" size=\"40\"> </p> <div> <input type=\"submit\" value=\"Send\"> </div> </form>" FOOTER
-
-#define UPLOAD_DONE "<html><p>Uploaded file has %zu bytes. <a href=\"/upload\">Next upload</a></p></html>"
-
 #define MAIN_PAGE \
 	HEADER_PART1 "<title>Willkommen</title>" HEADER_PART2 \
 	TOP NAVIGATION \
 	"<div id=\"main\"><p>Willkommen!</p></div>" FOOTER
-
-#define TABLE_PAGE_VAR \
-HEADER \
-"<title>My Page</title>" \
-"</head>" \
-"<body>" \
-"<form name=\"myform\" action=\"/table\" method=\"POST\">" \
-"<table>" \
-"<tr>" \
-"<td>1</td>" \
-"<td>" \
-"<select name=\"dropdown1\">" \
-"<option %svalue=\"1\">Auto</option>" \
-"<option %svalue=\"2\">100 MB/FD</option>" \
-"<option %svalue=\"3\">100 MB/HD</option>" \
-"<option %svalue=\"4\">10 MB/FD</option>" \
-"<option %svalue=\"5\">10 MB/HD</option>" \
-"</select>" \
-"</td>" \
-"</tr>" \
-"<tr>" \
-"<td>2</td>" \
-"<td>" \
-"<select name=\"dropdown2\">" \
-"<option %svalue=\"1\">Auto</option>" \
-"<option %svalue=\"2\">100 MB/FD</option>" \
-"<option %svalue=\"3\">100 MB/HD</option>" \
-"<option %svalue=\"4\">10 MB/FD</option>" \
-"<option %svalue=\"5\">10 MB/HD</option>" \
-"</select>" \
-"</td>" \
-"</tr>" \
-"</table>" \
-"<button type=\"submit\">Submit</button>" \
-"</form>" FOOTER
 
 #define LOGIN_FORM "<html><body>" \
 "<p><form action=\"/\" method=\"post\">" \
@@ -94,12 +55,6 @@ HEADER \
 "Username:<input type=\"text\" name=\"user\" value=\"admin\"><br />" \
 "Password:<input name=\"password\" type=\"password\" size=\"12\" maxlength=\"12\"><br />" \
 "<input type=\"submit\" value=\"Login\">" \
-"</form></p>" \
-"</body></html>"
-
-#define LOGOUT_FORM "<html><body>" \
-"<p><form action=\"/logout\" method=\"post\">" \
-"<input type=\"submit\" value=\"Logout\">" \
 "</form></p>" \
 "</body></html>"
 
@@ -175,15 +130,6 @@ struct LoginRequest {
   char user[64];
   char password[64];
 };
-struct UploadRequest { 
-	size_t file_size;
-};
-struct TableRequest { 
-	struct {
-  	char value[2];
-	} dropbox[2];
-};
-
 struct ChpassRequest { 
   char newpassword[64];
 };
@@ -265,67 +211,10 @@ static void add_session_cookie(struct Session *session, struct MHD_Response *res
 }
 
 struct {
-	struct {
-		char value[2];
-	} dropbox[2];
   char password[64];
 } device_data = {
-	{ {"1"}, {"1"} }, 
 	"admin"
 };
-
-#define VAL1(s) ((s.value[0] == '1')?"selected ":"")
-#define VAL2(s) ((s.value[0] == '2')?"selected ":"")
-#define VAL3(s) ((s.value[0] == '3')?"selected ":"")
-#define VAL4(s) ((s.value[0] == '4')?"selected ":"")
-#define VAL5(s) ((s.value[0] == '5')?"selected ":"")
-
-static struct MHD_Response *table_form(struct Request *request)
-{
-  char *reply;
-  struct MHD_Response *response;
-	const size_t buf_size = 1024*8;
-
-  reply = malloc(buf_size);
-  if (NULL == reply)
-    return NULL;
-
-  snprintf(reply, buf_size, TABLE_PAGE_VAR, 
-		VAL1(device_data.dropbox[0]),
-		VAL2(device_data.dropbox[0]),
-		VAL3(device_data.dropbox[0]),
-		VAL4(device_data.dropbox[0]),
-		VAL5(device_data.dropbox[0]),
-		VAL1(device_data.dropbox[1]),
-		VAL2(device_data.dropbox[1]),
-		VAL3(device_data.dropbox[1]),
-		VAL4(device_data.dropbox[1]),
-		VAL5(device_data.dropbox[1]));
-
-  /* return static form */
-  response = MHD_create_response_from_buffer(strlen(reply), (void *) reply, MHD_RESPMEM_MUST_FREE);
-  if (!response) {
-		free(reply);
-	}
-	return response;
-}
-
-static struct MHD_Response *upload_done_form(struct Request *request)
-{
-  char *reply;
-  struct MHD_Response *response;
-  struct UploadRequest *ur = (struct UploadRequest *)request->data;
-
-  reply = malloc(strlen(UPLOAD_DONE) + 15 + 1);
-  if (NULL == reply)
-    return NULL;
-  snprintf(reply, strlen(UPLOAD_DONE) + 15 + 1, UPLOAD_DONE, ur->file_size);
-  /* return static form */
-  response = MHD_create_response_from_buffer(strlen(reply), (void *) reply, MHD_RESPMEM_MUST_FREE);
-  if (!response)
-		free(reply);
-	return response;
-}
 
 #define SIMPLE_FORM(name, string) \
 static struct MHD_Response *name(struct Request *request) \
@@ -336,7 +225,6 @@ static struct MHD_Response *name(struct Request *request) \
 SIMPLE_FORM(main_form, MAIN_PAGE)
 SIMPLE_FORM(login_form, LOGIN_FORM)
 SIMPLE_FORM(chpass_form, CHPASS_FORM)
-SIMPLE_FORM(upload_form, FILE_UPLOAD)
 
 struct html_response {
 		const char *url;
@@ -349,9 +237,6 @@ static struct html_response html_page[] = {
 	{ "/member",         &member_form },
 	{ "/formation",      &formation_form },
 	{ "/chpass",         &chpass_form },
-	{ "/table",          &table_form },
-	{ "/upload",         &upload_form },
-	{ "/do_upload",      &upload_done_form },
 };
 #define NHTMLPAGES (sizeof(html_page)/sizeof(html_page[0]))
 
@@ -398,62 +283,6 @@ void logout_process(struct Request *request)
 }
 
 static int
-upload_iterator(void *cls,
-	       enum MHD_ValueKind kind,
-	       const char *key,
-	       const char *filename,
-	       const char *content_type,
-	       const char *transfer_encoding,
-	       const char *data, uint64_t off, size_t size)
-{
-  struct Request *request = cls;
-  struct UploadRequest *ur = (struct UploadRequest *)request->data;
-
-	if (!strcmp(key, "datafile")) {
-		ur->file_size += size;
-		fprintf(stderr, "datafile request %p offset %d size %d \n", request, (int)off, (int)size);
-		return MHD_YES;
-	}
-  fprintf(stderr, "Unsupported form value `%s'\n", key);
-  return MHD_YES;
-}
-void upload_process(struct Request *request)
-{
-	struct UploadRequest *ur = (struct UploadRequest *)request->data;
-	fprintf(stderr, "file_size %zu\n", ur->file_size);
-}
-
-static int
-table_iterator(void *cls,
-	       enum MHD_ValueKind kind,
-	       const char *key,
-	       const char *filename,
-	       const char *content_type,
-	       const char *transfer_encoding,
-	       const char *data, uint64_t off, size_t size)
-{
-  struct Request *request = cls;
-  struct TableRequest *tr = (struct TableRequest *)request->data;
-
-	if (!strcmp("dropdown1", key)) {
-		to_str(off, size, sizeof(tr->dropbox[0].value), data, tr->dropbox[0].value);		
-		return MHD_YES;
-	}
-	if (!strcmp("dropdown2", key)) {
-		to_str(off, size, sizeof(tr->dropbox[1].value), data, tr->dropbox[1].value);		
-		return MHD_YES;
-	}
-  fprintf(stderr, "Unsupported form value `%s'\n", key);
-  return MHD_YES;
-}
-void table_process(struct Request *request)
-{
-	struct TableRequest *tr = (struct TableRequest *)request->data;
-	fprintf(stderr, "d1: %s d2: %s\n", tr->dropbox[0].value, tr->dropbox[1].value);
-	memcpy(device_data.dropbox, tr->dropbox, sizeof(device_data.dropbox));
-}
-
-static int
 chpass_iterator(void *cls,
 	       enum MHD_ValueKind kind,
 	       const char *key,
@@ -479,16 +308,12 @@ void chpass_process(struct Request *request)
 	strcpy(device_data.password, cr->newpassword);
 }
 
-
-
-const struct PostIterator *find_iter(const char *url)
+static const struct PostIterator *find_iter(const char *url)
 {
 	static const struct PostIterator post_request[] = {
 		{ "/",          sizeof(struct LoginRequest),  login_iterator,  login_process,  0 },
 		{ "/chpass",    sizeof(struct ChpassRequest), chpass_iterator, chpass_process, 1 },
 		{ "/logout",    0,                            NULL,            logout_process, 1 },
-		{ "/table",     sizeof(struct TableRequest),  table_iterator,  table_process,  1 },
-		{ "/do_upload", sizeof(struct UploadRequest), upload_iterator, upload_process, 1 },
 		{ "/member",    sizeof(struct MemberRequest), member_iterator, NULL, 1 },
 	};
 	int i;

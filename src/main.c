@@ -117,8 +117,7 @@ HEADER \
 	NAVIGATION \
 	"<div id=\"main\">" \
 	"<p><form action=\"/chpass\" method=\"post\">" \
-	"<p>Neues Passwort:<br />" \
-	"Passwort:<input name=\"newpassword\" type=\"password\" size=\"12\" maxlength=\"12\"><br />" \
+	"Neues Passwort: <input name=\"newpassword\" type=\"password\" size=\"12\" maxlength=\"12\">" \
 	"<input type=\"submit\" value=\"Ändern\">" \
 	"</form></p></div>" FOOTER
 

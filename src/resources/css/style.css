@@ -1,3 +1,7 @@
+* { 
+	background: lightblue; 
+}
+
 #top { 
 	background: #00AFEC; 
 	color: white; 
@@ -5,10 +9,19 @@
 	text-align:center;
 }
 
-*, #main { 
-	background: lightblue; 
+#nav{
+	float: left;
+}
+
+#main { 
+	margin-left:160px;
+	margin-top:20px;
 }
 
 table, th, td {
-    border: 1px solid black;
+	border: 1px solid black;
 }
+ul {
+	list-style-type:none;
+}
+

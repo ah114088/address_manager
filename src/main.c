@@ -13,8 +13,24 @@
 
 #define HEADER_PART1 "<!DOCTYPE html><html><head>"
 #define HEADER_PART2 "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"></head>" CSS_LINK "<body>"
+#define TOP "<div id=\"top\">Adressverwaltung</div>"
 
-#define HEADER HEADER_PART1 HEADER_PART2 
+#define HEADER HEADER_PART1 HEADER_PART2
+
+#define NAVIGATION \
+	"<div id=\"nav\">" \
+		"<ul>" \
+			"<li><a href=\"/member\">Mitglieder</a></li>" \
+			"<li><a href=\"/formation\">Gliederungen</a></li>" \
+			"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
+			"<li>" \
+				"<form action=\"/logout\" method=\"post\">" \
+					"<input type=\"submit\" value=\"Logout\">" \
+				"</form>" \
+			"</li>" \
+		"</ul>" \
+	"</div>"
+
 #define FOOTER "</body></html>"
 
 /**
@@ -36,7 +52,7 @@
 HEADER \
 "<ul>" \
 "<li><a href=\"/member\">Members</a></li>" \
-"<li><a href=\"/formation_list\">Formations</a></li>" \
+"<li><a href=\"/formation\">Formations</a></li>" \
 "<li><a href=\"/upload\">File Upload</a></li>" \
 "<li><a href=\"/table\">Table</a></li>" \
 "<li><a href=\"/chpass\">Change password</a></li>" \
@@ -96,11 +112,15 @@ HEADER \
 "</body></html>"
 
 #define CHPASS_FORM HEADER \
-"<p><form action=\"/chpass\" method=\"post\">" \
-"<p>New password:<br />" \
-"Password:<input name=\"newpassword\" type=\"password\" size=\"12\" maxlength=\"12\"><br />" \
-"<input type=\"submit\" value=\"Change\">" \
-"</form></p>" FOOTER
+	HEADER_PART1 "<title>Passwort ändern</title>" HEADER_PART2 \
+  TOP \
+	NAVIGATION \
+	"<div id=\"main\">" \
+	"<p><form action=\"/chpass\" method=\"post\">" \
+	"<p>Neues Passwort:<br />" \
+	"Passwort:<input name=\"newpassword\" type=\"password\" size=\"12\" maxlength=\"12\"><br />" \
+	"<input type=\"submit\" value=\"Ändern\">" \
+	"</form></p></div>" FOOTER
 
 /**
  * Name of our cookie.
@@ -137,8 +157,17 @@ struct Session {
 
 char *add_header(char *p, const char *title)
 {
-	p += sprintf(p, HEADER_PART1 "<title>%s</title>" HEADER_PART2, title);
-	p = stpcpy(p, "<div id=\"top\">Addressverwaltung</div>");
+	p += sprintf(p, HEADER_PART1 "<title>%s</title>" HEADER_PART2 TOP, title);
+	p = stpcpy(p, "<div id=\"nav\">"
+				"<ul>" \
+					"<li><a href=\"/member\">Mitglieder</a></li>" \
+					"<li><a href=\"/formation\">Gliederungen</a></li>" \
+					"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
+					"<li><form action=\"/logout\" method=\"post\">" \
+					"<input type=\"submit\" value=\"Logout\">" \
+					"</form></li>" \
+				"</ul>" \
+					"</div>");
 	return p;
 }
 char *add_footer(char *p)
@@ -327,7 +356,7 @@ static struct html_response html_page[] = {
 	{ "/",               &main_form, },
 	{ "/login",          &login_form },
 	{ "/member",         &member_form },
-	{ "/formation_list", &formation_form },
+	{ "/formation",      &formation_form },
 	{ "/chpass",         &chpass_form },
 	{ "/table",          &table_form },
 	{ "/upload",         &upload_form },

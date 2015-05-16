@@ -16,8 +16,6 @@
 #define HEADER_PART2 "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"></head>" CSS_LINK "<body>"
 #define TOP "<div id=\"top\">Adressverwaltung</div>"
 
-#define HEADER HEADER_PART1 HEADER_PART2
-
 #define NAVIGATION \
 	"<div id=\"nav\">" \
 		"<ul>" \
@@ -46,11 +44,6 @@
 #define NOT_FOUND_ERROR "<html><head><title>Not found</title></head><body>Go away.</body></html>"
 
 
-#define MAIN_PAGE \
-	HEADER_PART1 "<title>Willkommen</title>" HEADER_PART2 \
-	TOP NAVIGATION \
-	"<div id=\"main\"><p>Willkommen!</p></div>" FOOTER
-
 #define LOGIN_FORM "<html><body>" \
 "<p><form action=\"/\" method=\"post\">" \
 "<p>Please login:<br />" \
@@ -60,15 +53,6 @@
 "</form></p>" \
 "</body></html>"
 
-#define CHPASS_FORM HEADER \
-	HEADER_PART1 "<title>Passwort ändern</title>" HEADER_PART2 \
-  TOP \
-	NAVIGATION \
-	"<div id=\"main\">" \
-	"<p><form action=\"/chpass\" method=\"post\">" \
-	"Neues Passwort: <input name=\"newpassword\" type=\"password\" size=\"12\" maxlength=\"12\">" \
-	"<input type=\"submit\" value=\"Ändern\">" \
-	"</form></p></div>" FOOTER
 
 /**
  * Name of our cookie.
@@ -182,9 +166,7 @@ static struct MHD_Response *name(struct Request *request) \
   return MHD_create_response_from_buffer(strlen(string), (void *)string, MHD_RESPMEM_PERSISTENT); \
 }
 
-SIMPLE_FORM(main_form, MAIN_PAGE)
 SIMPLE_FORM(login_form, LOGIN_FORM)
-SIMPLE_FORM(chpass_form, CHPASS_FORM)
 
 struct html_response {
 		const char *url;
@@ -192,7 +174,7 @@ struct html_response {
 };
 
 static struct html_response html_page[] = {
-	{ "/",               &main_form, },
+	{ "/",               &welcome_form, },
 	{ "/login",          &login_form },
 	{ "/member",         &member_form },
 	{ "/formation",      &formation_form },

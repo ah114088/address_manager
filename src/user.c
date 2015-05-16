@@ -98,6 +98,37 @@ struct MHD_Response *newuser_form(struct Request *request)
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &newuser_form_reader, nfs, &free);
 }
 
+struct MHD_Response *welcome_form(struct Request *request)
+{
+  char *reply, *p;
+
+  if (!(reply=malloc(MAXPAGESIZE)))
+    return NULL;
+		
+	p = add_header(reply, "Willkommen");
+  p += sprintf(p, "<div id=\"main\"><p>Willkommen %s!</p></div>", request->session->logged_in->username);
+	p = add_footer(p);
+
+  return MHD_create_response_from_buffer(p - reply, (void *) reply, MHD_RESPMEM_MUST_FREE);
+}
+struct MHD_Response *chpass_form(struct Request *request)
+{
+  char *reply, *p;
+
+  if (!(reply=malloc(MAXPAGESIZE)))
+    return NULL;
+		
+	p = add_header(reply, "Passwort ändern");
+  p = stpcpy(p, "<div id=\"main\">" \
+		"<p><form action=\"/chpass\" method=\"post\">" \
+		"Neues Passwort: <input name=\"newpassword\" type=\"password\" size=\"12\" maxlength=\"12\">" \
+		"<input type=\"submit\" value=\"Ändern\">" \
+		"</form></p></div>");
+	p = add_footer(p);
+
+  return MHD_create_response_from_buffer(p - reply, (void *) reply, MHD_RESPMEM_MUST_FREE);
+}
+
 int newuser_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 	       const char *filename, const char *content_type, const char *transfer_encoding,
 	       const char *data, uint64_t off, size_t size)

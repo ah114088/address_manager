@@ -7,6 +7,7 @@
 
 #include "request.h"
 #include "member.h"
+#include "user.h"
 #include "file.h"
 
 #define CSS_LINK "<link rel=\"stylesheet\" type=\"text/css\" href=\"css/style.css\">"
@@ -23,6 +24,7 @@
 			"<li><a href=\"/member\">Mitglieder</a></li>" \
 			"<li><a href=\"/formation\">Gliederungen</a></li>" \
 			"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
+			"<li><a href=\"/newuser\">Neuer Benutzer</a></li>" \
 			"<li>" \
 				"<form action=\"/logout\" method=\"post\">" \
 					"<input type=\"submit\" value=\"Logout\">" \
@@ -98,22 +100,13 @@ struct Session {
    */
   time_t start;
 
-  int logged_in;
+	struct user_struct *logged_in;
 };
 
 char *add_header(char *p, const char *title)
 {
 	p += sprintf(p, HEADER_PART1 "<title>%s</title>" HEADER_PART2 TOP, title);
-	p = stpcpy(p, "<div id=\"nav\">"
-				"<ul>" \
-					"<li><a href=\"/member\">Mitglieder</a></li>" \
-					"<li><a href=\"/formation\">Gliederungen</a></li>" \
-					"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
-					"<li><form action=\"/logout\" method=\"post\">" \
-					"<input type=\"submit\" value=\"Logout\">" \
-					"</form></li>" \
-				"</ul>" \
-					"</div>");
+	p = stpcpy(p, NAVIGATION);
 	return p;
 }
 char *add_footer(char *p)
@@ -210,12 +203,6 @@ static void add_session_cookie(struct Session *session, struct MHD_Response *res
 	}
 }
 
-struct {
-  char password[64];
-} device_data = {
-	"admin"
-};
-
 #define SIMPLE_FORM(name, string) \
 static struct MHD_Response *name(struct Request *request) \
 { \
@@ -237,6 +224,7 @@ static struct html_response html_page[] = {
 	{ "/member",         &member_form },
 	{ "/formation",      &formation_form },
 	{ "/chpass",         &chpass_form },
+	{ "/newuser",        &newuser_form },
 };
 #define NHTMLPAGES (sizeof(html_page)/sizeof(html_page[0]))
 
@@ -270,16 +258,17 @@ static int login_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 
 void login_process(struct Request *request)
 {
+	struct user_struct *user;
 	struct LoginRequest *lr = (struct LoginRequest *)request->data;
 	fprintf(stderr, "login %s %s\n", lr->user, lr->password);
-	if (!strcmp("admin", lr->user) && !strcmp(device_data.password, lr->password))
-		request->session->logged_in = 1;
+	if ((user = find_user(lr->user)) && !strcmp(user->password, lr->password))
+		request->session->logged_in = user;
 }
 
 void logout_process(struct Request *request)
 {
 	fprintf(stderr, "logout\n");
-	request->session->logged_in = 0;
+	request->session->logged_in = NULL;
 }
 
 static int
@@ -305,16 +294,17 @@ void chpass_process(struct Request *request)
 {
 	struct ChpassRequest *cr = (struct ChpassRequest *)request->data;
 	fprintf(stderr, "new password: %s\n", cr->newpassword);
-	strcpy(device_data.password, cr->newpassword);
+	strcpy(request->session->logged_in->password, cr->newpassword);
 }
 
 static const struct PostIterator *find_iter(const char *url)
 {
 	static const struct PostIterator post_request[] = {
-		{ "/",          sizeof(struct LoginRequest),  login_iterator,  login_process,  0 },
-		{ "/chpass",    sizeof(struct ChpassRequest), chpass_iterator, chpass_process, 1 },
-		{ "/logout",    0,                            NULL,            logout_process, 1 },
-		{ "/member",    sizeof(struct MemberRequest), member_iterator, NULL, 1 },
+		{ "/",          sizeof(struct LoginRequest),   login_iterator,  login_process,  0 },
+		{ "/chpass",    sizeof(struct ChpassRequest),  chpass_iterator, chpass_process, 1 },
+		{ "/logout",    0,                             NULL,            logout_process, 1 },
+		{ "/member",    sizeof(struct MemberRequest),  member_iterator, NULL, 1 },
+		{ "/newuser",   sizeof(struct NewuserRequest), newuser_iterator, newuser_process, 1 },
 	};
 	int i;
 	
@@ -403,8 +393,10 @@ create_response(void *cls,
 						return MHD_NO; /* internal error */
 					}
 				}
-			} else
+			} else {
 				fprintf(stderr, "Unknown POST request for url `%s'\n", url);
+				request->session->logged_in = NULL;
+			}
 		}
 	}
   session = request->session;
@@ -558,6 +550,8 @@ int main(int argc, char *const *argv)
 		printf("usage: %s <port> <member_file> <formation_file>\n", argv[0]);
 		return 1;
 	}
+
+	init_user_list();
 
 	if ((n=read_member_list(argv[2])) == -1) {	
 		return 1;

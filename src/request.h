@@ -1,6 +1,8 @@
 #ifndef __REQUEST_H
 #define __REQUEST_H
 
+#define MAXPAGESIZE 1024
+
 struct Request;
 struct PostIterator {
 	const char *url;

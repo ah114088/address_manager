@@ -158,7 +158,6 @@ static int in_formation(int member_formation, int fid)
 	return 0;
 }
 
-#define MAXPAGESIZE 1024
 struct member_form_state {
 	int pos; /* state machine */
 	int fid; /* selector */

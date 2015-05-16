@@ -10,7 +10,7 @@ all: $(ALL)
 clean:
 	rm -f *.o $(ALL)
 
-MAIN_OBJ = main.o member.o file.o
+MAIN_OBJ = main.o member.o file.o user.o
 main: $(MAIN_OBJ)
 	@$(LD) -o $@ $(MAIN_OBJ) -lmicrohttpd
 	@echo " [LD]        $@"

@@ -1,4 +1,5 @@
 #!/usr/bin/ruby
+# encoding: utf-8
 
 class Locality
 	attr_accessor :zip, :name, :country, :province, :circle
@@ -127,11 +128,7 @@ class PersonGenerator
 		STDERR.puts "huh?"
 	end
 	def convert_umlaut s
-#		s.sub! 'ä', 'ae'
-#		s.sub! 'ö', 'oe'
-#		s.sub! 'ü', 'ue'
-#		s.sub! 'ß', 'ss'
-		s
+		s.sub('Ä', 'Ae').sub('Ö', 'Oe').sub('Ü', 'Ue').sub('ä', 'ae').sub('ö', 'oe').sub('ü', 'ue').sub('ß', 'ss')
 	end
 	def get_person
 		p = Person.new

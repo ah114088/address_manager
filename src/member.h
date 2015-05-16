@@ -11,7 +11,16 @@ int member_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 	       const char *data, uint64_t off, size_t size);
 struct MHD_Response *member_form(struct Request *request);
 
+int parse_fid(const char *fid_str, int *fid);
 int read_formation_list(const char *file);
 struct MHD_Response *formation_form(struct Request *request);
+
+struct formation_struct {
+	struct formation_struct *next;
+	char *name;
+	int fid;
+	struct formation_struct *super;
+};
+extern struct formation_struct *formation_list;
 
 #endif

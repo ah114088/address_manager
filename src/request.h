@@ -25,6 +25,31 @@ struct Request {
 	const struct PostIterator *pi;
 };
 
+struct Session {
+  /**
+   * We keep all sessions in a linked list.
+   */
+  struct Session *next;
+
+  /**
+   * Unique ID for this session.
+   */
+  char sid[33];
+
+  /**
+   * Reference counter giving the number of connections
+   * currently using this session.
+   */
+  unsigned int rc;
+
+  /**
+   * Time when this session was last active.
+   */
+  time_t start;
+
+	struct user_struct *logged_in;
+};
+
 char *add_header(char *p, const char *title);
 char *add_footer(char *p);
 void to_str(uint64_t off, size_t size, size_t max, const char *data, char *dest);

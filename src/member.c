@@ -5,6 +5,7 @@
 
 #include "request.h"
 #include "member.h"
+#include "user.h"
 
 #define MAX_STR 100
 
@@ -24,15 +25,7 @@ struct member_struct {
 static struct member_struct *member_list = NULL;
 static int nmember;
 
-struct formation_struct;
-struct formation_struct {
-	struct formation_struct *next;
-	char *name;
-	int fid;
-	struct formation_struct *super;
-};
-
-static struct formation_struct *formation_list = NULL;
+struct formation_struct *formation_list = NULL;
 static int nformation;
 
 // UTF-8
@@ -163,6 +156,7 @@ struct member_form_state {
 	int fid; /* selector */
 	const struct member_struct *m; /* member iterator */
 	const struct formation_struct *f; /* formation iterator */
+	struct Request *request;
 };
 
 
@@ -179,6 +173,7 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 {
 	struct member_form_state *mfs = cls;
 	char *p = buf;
+	struct user_struct *user = mfs->request->session->logged_in;
 
 	switch (mfs->pos) {
 	case 0: 
@@ -189,10 +184,14 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 		return p - buf;
 		
 	case 1:
-		if (mfs->f) {
-			p += sprintf(p, "<option %svalue=\"%d\">%s</option>", mfs->fid == mfs->f->fid ? "selected ":"", mfs->f->fid, mfs->f->name);
+		while (mfs->f) {
+			if (in_formation(mfs->f->fid, user->fid)) {
+				p += sprintf(p, "<option %svalue=\"%d\">%s</option>", 
+					mfs->fid == mfs->f->fid ? "selected ":"", mfs->f->fid, mfs->f->name);
+				mfs->f = mfs->f->next;
+				return p - buf;
+			}
 			mfs->f = mfs->f->next;
-			return p - buf;
 		}
 		mfs->pos++;
 		/* no break */
@@ -207,7 +206,8 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 	
 	case 3:
 		while (mfs->m) {
-			if (in_formation(mfs->m->formation, mfs->fid)) {
+			if (in_formation(mfs->m->formation, mfs->fid) && 
+					in_formation(mfs->m->formation, user->fid)) {
 				p = stpcpy(p, "<tr><td>");
 				p = stpcpy(p, mfs->m->first);
 				p = stpcpy(p, "</td><td>");
@@ -244,6 +244,16 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 	}
 }
 
+int parse_fid(const char *fid_str, int *fid)
+{
+	if (sscanf(fid_str, "%d", fid) != 1 || *fid >= nformation|| *fid < 0) {
+		fprintf(stderr, "invalid fid: %s\n", fid_str);
+		return -1;
+	}
+	return 0;
+}
+
+
 struct MHD_Response *member_form(struct Request *request)
 {
 	struct member_form_state *mfs;
@@ -253,9 +263,11 @@ struct MHD_Response *member_form(struct Request *request)
 
 	if (request->data) {
 		struct MemberRequest *mr = request->data;
-		if (sscanf(mr->fid, "%d", &mfs->fid) != 1 || mfs->fid >= nformation|| mfs->fid < 0)
-			fprintf(stderr, "invalid fid: %s\n", mr->fid);
+		if (parse_fid(mr->fid, &mfs->fid)<0)
+			mfs->fid = 0;
 	}
+	mfs->request = request;
+
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &member_form_reader, mfs, &free);
 }
 

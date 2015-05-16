@@ -5,11 +5,13 @@
 
 #include "request.h"
 #include "user.h"
+#include "member.h"
 
 struct user_struct *user_list = NULL;
 
 struct newuser_form_state {
 	int pos;
+	const struct formation_struct *f; /* formation iterator */
 };
 
 int init_user_list(void)
@@ -24,6 +26,7 @@ int init_user_list(void)
 	user->next = NULL;
 	strcpy(user->username, "admin");
 	strcpy(user->password, "admin");
+	user->fid = 0;
 
 	user_list = user;	
 	
@@ -56,15 +59,26 @@ static ssize_t newuser_form_reader(void *cls, uint64_t pos, char *buf, size_t ma
 	case 0:
 		p = add_header(p, "Benutzer hinzufügen");
 		p = stpcpy(p, "<div id=\"main\">" \
-			"<p><form action=\"/newuser\" method=\"post\">" \
-			"Benutzername: <input name=\"username\" type=\"text\" size=\"12\" maxlength=\"12\">" \
-			"Neues Passwort: <input name=\"password\" type=\"password\" size=\"12\" maxlength=\"12\">" \
-			"<input type=\"submit\" value=\"Hinzufügen\">" \
-			"</form></p></div>");
+			"<p><form action=\"/newuser\" method=\"POST\">" "<select name=\"fid\">");
 		nfs->pos++;
+		nfs->f = formation_list;
 		return p - buf;
 
 	case 1:
+		if (nfs->f) {
+			p += sprintf(p, "<option value=\"%d\">%s</option>", 
+				nfs->f->fid, nfs->f->name);
+			nfs->f = nfs->f->next;
+			return p - buf;
+		}
+		nfs->pos++;
+		/* no break */
+
+	case 2:
+		p = stpcpy(p, "</select>Benutzername: <input name=\"username\" type=\"text\" size=\"12\" maxlength=\"12\">" \
+			"Neues Passwort: <input name=\"password\" type=\"password\" size=\"12\" maxlength=\"12\">" \
+			"<input type=\"submit\" value=\"Hinzufügen\">" \
+			"</form></p></div>");
 		p = add_footer(p);
 		nfs->pos++;
 		return p - buf;
@@ -99,6 +113,11 @@ int newuser_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 		to_str(off, size, sizeof(nr->password), data, nr->password);		
 		return MHD_YES;
 	}
+  if (!strcmp("fid", key)) {
+		to_str(off, size, sizeof(nr->fid), data, nr->fid);		
+		return MHD_YES;
+	}
+
   fprintf(stderr, "Unsupported form value `%s'\n", key);
   return MHD_YES;
 }
@@ -107,10 +126,15 @@ void newuser_process(struct Request *request)
 {
 	struct user_struct *user;
 	struct NewuserRequest *nr = (struct NewuserRequest *)request->data;
+	int fid;
+
 	if ((user = find_user(nr->username))) {
 		fprintf(stderr, "user %s already exists\n", nr->username);
 		return;
 	}
+
+	if (parse_fid(nr->fid, &fid)<0)
+		return;
 
 	if (!(user = (struct user_struct *)malloc(sizeof(struct user_struct)))) {
 		fprintf(stderr, "malloc() failure!!\n");
@@ -119,6 +143,8 @@ void newuser_process(struct Request *request)
 
 	strcpy(user->username, nr->username);
 	strcpy(user->password, nr->password);
+	user->fid = fid;
+
 	user->next = user_list;
 	user_list = user;
 

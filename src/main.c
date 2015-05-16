@@ -75,33 +75,6 @@
  */
 #define COOKIE_NAME "session"
 
-/**
- * State we keep for each user/session/browser.
- */
-struct Session {
-  /**
-   * We keep all sessions in a linked list.
-   */
-  struct Session *next;
-
-  /**
-   * Unique ID for this session.
-   */
-  char sid[33];
-
-  /**
-   * Reference counter giving the number of connections
-   * currently using this session.
-   */
-  unsigned int rc;
-
-  /**
-   * Time when this session was last active.
-   */
-  time_t start;
-
-	struct user_struct *logged_in;
-};
 
 char *add_header(char *p, const char *title)
 {

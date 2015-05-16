@@ -212,19 +212,21 @@ static int login_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
   return MHD_YES;
 }
 
-void login_process(struct Request *request)
+static int login_process(struct Request *request)
 {
 	struct user_struct *user;
 	struct LoginRequest *lr = (struct LoginRequest *)request->data;
 	fprintf(stderr, "login %s %s\n", lr->user, lr->password);
 	if ((user = find_user(lr->user)) && !strcmp(user->password, lr->password))
 		request->session->logged_in = user;
+  return MHD_YES;
 }
 
-void logout_process(struct Request *request)
+static int logout_process(struct Request *request)
 {
 	fprintf(stderr, "logout\n");
 	request->session->logged_in = NULL;
+  return MHD_YES;
 }
 
 static int
@@ -246,11 +248,12 @@ chpass_iterator(void *cls,
   fprintf(stderr, "Unsupported form value `%s'\n", key);
   return MHD_YES;
 }
-void chpass_process(struct Request *request)
+int chpass_process(struct Request *request)
 {
 	struct ChpassRequest *cr = (struct ChpassRequest *)request->data;
 	fprintf(stderr, "new password: %s\n", cr->newpassword);
 	strcpy(request->session->logged_in->password, cr->newpassword);
+  return MHD_YES;
 }
 
 static const struct PostIterator *find_iter(const char *url)
@@ -379,7 +382,8 @@ create_response(void *cls,
 
 		if (request->pi && request->pi->process) {
 			if (!request->pi->need_session || session->logged_in)
-				request->pi->process(request);
+				if (request->pi->process(request) != MHD_YES)
+					return MHD_NO;
 		}
 		method = MHD_HTTP_METHOD_GET; /* fake 'GET' */
 	}

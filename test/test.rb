@@ -2,10 +2,10 @@
 
 require 'net/http'
 
-def login http, cookies, password
+def login http, cookies, user, password
 	puts "# -- login"
 	req = Net::HTTP::Post.new('/', { 'Cookie' => cookies })
-	req.set_form_data({"user" => "admin", "password" => password})
+	req.set_form_data({"user" => user, "password" => password})
 	res = http.request(req)
 	# puts res.body
 
@@ -39,6 +39,14 @@ def members http, cookies
 	# puts res.body
 end
 
+def newuser http, cookies, username, password, fid
+	puts "# -- new user"
+	req = Net::HTTP::Post.new('/newuser', { 'Cookie' => cookies })
+	req.set_form_data({"username" => username, "password" => password, "fid" => fid})
+	res = http.request(req)
+	# puts res.body
+end
+
 if ARGV.length != 1
 	puts "usage: test.rb <URL>"
 	exit 1
@@ -66,17 +74,24 @@ cookies = cookies_array.join('; ')
 puts "Cookies: #{cookies}"
 # puts res.body
 
-login(http, cookies, "admin")
+login(http, cookies, "admin", "admin")
 # members(http, cookies)
 logout(http, cookies)
 
-login(http, cookies, "admin")
+login(http, cookies, "admin", "admin")
 passwd(http, cookies, "geheim")
 logout(http, cookies)
 
-login(http, cookies, "geheim")
+login(http, cookies, "admin", "geheim")
 logout(http, cookies)
 
-login(http, cookies, "geheim")
+login(http, cookies, "admin", "geheim")
 passwd(http, cookies, "admin")
+logout(http, cookies)
+
+login(http, cookies, "admin", "admin")
+newuser(http, cookies, "mfr", "mfr", "0")
+logout(http, cookies)
+
+login(http, cookies, "mfr", "mfr")
 logout(http, cookies)

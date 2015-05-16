@@ -154,7 +154,7 @@ int newuser_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
   return MHD_YES;
 }
 
-void newuser_process(struct Request *request)
+int newuser_process(struct Request *request)
 {
 	struct user_struct *user;
 	struct NewuserRequest *nr = (struct NewuserRequest *)request->data;
@@ -162,15 +162,15 @@ void newuser_process(struct Request *request)
 
 	if ((user = find_user(nr->username))) {
 		fprintf(stderr, "user %s already exists\n", nr->username);
-		return;
+		return MHD_YES;
 	}
 
 	if (parse_fid(nr->fid, &fid)<0)
-		return;
+		return MHD_NO;
 
 	if (!(user = (struct user_struct *)malloc(sizeof(struct user_struct)))) {
 		fprintf(stderr, "malloc() failure!!\n");
-		return;
+		return MHD_NO;
 	}
 
 	strcpy(user->username, nr->username);
@@ -181,4 +181,5 @@ void newuser_process(struct Request *request)
 	user_list = user;
 
 	fprintf(stderr, "new user %s %s\n", user->username, user->password);
+	return MHD_YES;
 }

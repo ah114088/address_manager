@@ -15,7 +15,7 @@ struct PostIterator {
 	       const char *content_type,
 	       const char *transfer_encoding,
 	       const char *data, uint64_t off, size_t size);
-	void (*process)(struct Request *request);
+	int (*process)(struct Request *request);
   int need_session;
 };
 

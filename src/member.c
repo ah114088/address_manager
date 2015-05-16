@@ -206,8 +206,7 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 	
 	case 3:
 		while (mfs->m) {
-			if (in_formation(mfs->m->formation, mfs->fid) && 
-					in_formation(mfs->m->formation, user->fid)) {
+			if (in_formation(mfs->m->formation, mfs->fid)) {
 				p = stpcpy(p, "<tr><td>");
 				p = stpcpy(p, mfs->m->first);
 				p = stpcpy(p, "</td><td>");
@@ -261,10 +260,13 @@ struct MHD_Response *member_form(struct Request *request)
 	if (!(mfs = (struct member_form_state *)calloc(1, sizeof(struct member_form_state))))
 		return NULL;
 
+	mfs->fid = request->session->logged_in->fid;
+
 	if (request->data) {
+		int fid;
 		struct MemberRequest *mr = request->data;
-		if (parse_fid(mr->fid, &mfs->fid)<0)
-			mfs->fid = 0;
+		if (parse_fid(mr->fid, &fid)>=0 && in_formation(fid, mfs->fid))
+			mfs->fid = fid;
 	}
 	mfs->request = request;
 

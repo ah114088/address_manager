@@ -13,7 +13,6 @@ struct member_struct {
 	char *house;
 	char *zip;
 	char *city;
-	char *country;
 	char *email;
 	int formation;
 };
@@ -36,15 +35,15 @@ int nformation;
 int read_member_list(const char *file)
 {
 	FILE *fp;
-	char buffer[9][MAX_STR];
+	char buffer[8][MAX_STR];
 	int i = 0;
 
 	if (!(fp=fopen(file, "r"))) 
 		return -1;
 
-	while (fscanf(fp, "%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\n]\n", 
+	while (fscanf(fp, "%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\n]\n", 
 			buffer[0], buffer[1], buffer[2], buffer[3],
-			buffer[4], buffer[5], buffer[6], buffer[7], buffer[8]) == 9) {
+			buffer[4], buffer[5], buffer[6], buffer[7]) == 8) {
 		if (i == MAX_MEMBER) {
 			fprintf(stderr, "too many members!!\n");
 			return -1;
@@ -55,9 +54,8 @@ int read_member_list(const char *file)
 		member[i].house     = strdup(buffer[3]);
 		member[i].zip       = strdup(buffer[4]);
 		member[i].city      = strdup(buffer[5]);
-		member[i].country   = strdup(buffer[6]);
-		member[i].email     = strdup(buffer[7]);
-		if (sscanf(buffer[8], "%d", &member[i].formation)!=1) {
+		member[i].email     = strdup(buffer[6]);
+		if (sscanf(buffer[7], "%d", &member[i].formation)!=1) {
 			fprintf(stderr, "bad formation number!!\n");
 			return -1;
 		}

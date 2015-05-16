@@ -102,9 +102,9 @@ class FormationList < Array
 end
 
 class Person
-	attr_accessor :first, :second, :street, :house, :zip, :city, :country, :email, :findex
+	attr_accessor :first, :second, :street, :house, :zip, :city, :email, :findex
 	def print o = STDOUT
-  	o.puts "#{@first}\t#{@second}\t#{@street}\t#{@house}\t#{@zip}\t#{@city}\t#{@country}\t#{@email}\t#{@findex}"
+  	o.puts "#{@first}\t#{@second}\t#{@street}\t#{@house}\t#{@zip}\t#{@city}\t#{@email}\t#{@findex}"
 	end
 end
 
@@ -142,7 +142,6 @@ class PersonGenerator
 		locality = generate(@zip_list)
 		p.zip = locality.zip
 		p.city = locality.name
-		p.country = locality.country
 
 		p.email = "#{convert_umlaut(first).downcase}.#{convert_umlaut(second).downcase}@#{generate(@mail_provider).name}"
 

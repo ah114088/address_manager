@@ -83,6 +83,14 @@ int member_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 	}
   return MHD_YES;
 }
+int member_process(struct Request *request)
+{
+	int fid;
+	struct MemberRequest *mr = request->data;
+	if (parse_fid(mr->fid, &fid) < 0 || !in_formation(fid, request->session->logged_in->fid))
+  	return MHD_NO;
+  return MHD_YES;
+}
 
 struct member_form_state {
 	int pos; /* state machine */
@@ -186,10 +194,8 @@ struct MHD_Response *member_form(struct Request *request)
 	mfs->fid = request->session->logged_in->fid;
 
 	if (request->data) {
-		int fid;
 		struct MemberRequest *mr = request->data;
-		if (parse_fid(mr->fid, &fid)>=0 && in_formation(fid, mfs->fid))
-			mfs->fid = fid;
+		parse_fid(mr->fid, &mfs->fid);
 	}
 	mfs->request = request;
 

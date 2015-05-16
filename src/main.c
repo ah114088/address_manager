@@ -262,7 +262,7 @@ static const struct PostIterator *find_iter(const char *url)
 		{ "/",          sizeof(struct LoginRequest),   login_iterator,  login_process,  0 },
 		{ "/chpass",    sizeof(struct ChpassRequest),  chpass_iterator, chpass_process, 1 },
 		{ "/logout",    0,                             NULL,            logout_process, 1 },
-		{ "/member",    sizeof(struct MemberRequest),  member_iterator, NULL, 1 },
+		{ "/member",    sizeof(struct MemberRequest),  member_iterator, member_process, 1 },
 		{ "/newuser",   sizeof(struct NewuserRequest), newuser_iterator, newuser_process, 1 },
 	};
 	int i;

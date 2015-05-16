@@ -49,17 +49,9 @@
 #define UPLOAD_DONE "<html><p>Uploaded file has %zu bytes. <a href=\"/upload\">Next upload</a></p></html>"
 
 #define MAIN_PAGE \
-HEADER \
-"<ul>" \
-"<li><a href=\"/member\">Members</a></li>" \
-"<li><a href=\"/formation\">Formations</a></li>" \
-"<li><a href=\"/upload\">File Upload</a></li>" \
-"<li><a href=\"/table\">Table</a></li>" \
-"<li><a href=\"/chpass\">Change password</a></li>" \
-"</ul>" \
-"<p><form action=\"/logout\" method=\"post\">" \
-"<input type=\"submit\" value=\"Logout\">" \
-"</form></p>" FOOTER
+	HEADER_PART1 "<title>Willkommen</title>" HEADER_PART2 \
+	TOP NAVIGATION \
+	"<div id=\"main\"><p>Willkommen!</p></div>" FOOTER
 
 #define TABLE_PAGE_VAR \
 HEADER \

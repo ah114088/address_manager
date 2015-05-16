@@ -276,6 +276,7 @@ struct MHD_Response *member_form(struct Request *request)
 struct formation_form_state {
 	int pos;
 	const struct formation_struct *f; /* formation iterator */
+	struct Request *request;
 };
 
 /*
@@ -289,6 +290,7 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 {
 	struct formation_form_state *ffs = cls;
 	char *p = buf;
+	struct user_struct *user = ffs->request->session->logged_in;
 
 	switch (ffs->pos) {
 	case 0:
@@ -299,16 +301,19 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 		return p - buf;
 
 	case 1:
-		if (ffs->f) {
-      p = stpcpy(p, "<tr><td>");
-			p += sprintf(p, "%d", ffs->f->fid);
-      p = stpcpy(p, "</td><td>");
-			p = stpcpy(p, ffs->f->name);
-      p = stpcpy(p, "</td><td>");
-			p += sprintf(p, "%d",  ffs->f->super ? ffs->f->super->fid : -1);
-      p = stpcpy(p, "</td></tr>");
+		while (ffs->f) {
+			if (in_formation(ffs->f->fid, user->fid)) {
+				p = stpcpy(p, "<tr><td>");
+				p += sprintf(p, "%d", ffs->f->fid);
+				p = stpcpy(p, "</td><td>");
+				p = stpcpy(p, ffs->f->name);
+				p = stpcpy(p, "</td><td>");
+				p += sprintf(p, "%d",  ffs->f->super ? ffs->f->super->fid : -1);
+				p = stpcpy(p, "</td></tr>");
+				ffs->f = ffs->f->next;
+				return p - buf;
+			}
 			ffs->f = ffs->f->next;
-			return p - buf;
 		} 
 		ffs->pos++;
 		/* no break */
@@ -332,5 +337,6 @@ struct MHD_Response *formation_form(struct Request *request)
 	struct formation_form_state *mfs;
 	if (!(mfs = (struct formation_form_state *)calloc(1, sizeof(struct formation_form_state))))
 		return NULL;
+	mfs->request = request;
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &formation_form_reader, mfs, &free);
 }

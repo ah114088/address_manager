@@ -5,6 +5,7 @@
 
 #include "request.h"
 #include "user.h"
+#include "formation.h"
 #include "member.h"
 
 struct user_struct *user_list = NULL;
@@ -61,7 +62,7 @@ static ssize_t newuser_form_reader(void *cls, uint64_t pos, char *buf, size_t ma
 		p = stpcpy(p, "<div id=\"main\">" \
 			"<p><form action=\"/newuser\" method=\"POST\">" "<select name=\"fid\">");
 		nfs->pos++;
-		nfs->f = formation_list;
+		nfs->f = get_formation_list();
 		return p - buf;
 
 	case 1:

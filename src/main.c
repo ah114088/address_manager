@@ -7,6 +7,7 @@
 
 #include "request.h"
 #include "member.h"
+#include "formation.h"
 #include "user.h"
 #include "file.h"
 

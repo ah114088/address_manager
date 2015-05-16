@@ -2,6 +2,7 @@
 #define __REQUEST_H
 
 #define MAXPAGESIZE 1024
+#define MAX_STR 100
 
 struct Request;
 struct PostIterator {

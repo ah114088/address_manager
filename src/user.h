@@ -15,6 +15,7 @@ int init_user_list(void);
 struct user_struct *find_user(const char *username);
 
 struct MHD_Response *newuser_form(struct Request *request);
+struct MHD_Response *user_form(struct Request *request);
 struct MHD_Response *welcome_form(struct Request *request);
 struct MHD_Response *chpass_form(struct Request *request);
 

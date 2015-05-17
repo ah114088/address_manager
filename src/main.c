@@ -14,7 +14,7 @@
 #define CSS_LINK "<link rel=\"stylesheet\" type=\"text/css\" href=\"css/style.css\">"
 
 #define HEADER_PART1 "<!DOCTYPE html><html><head>"
-#define HEADER_PART2 "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"></head>" CSS_LINK "<body>"
+#define HEADER_PART2 "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">" CSS_LINK "</head><body>"
 #define TOP "<div id=\"top\">Adressverwaltung</div>"
 
 #define NAVIGATION \
@@ -23,6 +23,7 @@
 			"<li><a href=\"/member\">Mitglieder</a></li>" \
 			"<li><a href=\"/formation\">Gliederungen</a></li>" \
 			"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
+			"<li><a href=\"/user\">Benutzer</a></li>" \
 			"<li><a href=\"/newuser\">Neuer Benutzer</a></li>" \
 			"<li>" \
 				"<form action=\"/logout\" method=\"post\">" \
@@ -181,6 +182,7 @@ static struct html_response html_page[] = {
 	{ "/formation",      &formation_form },
 	{ "/chpass",         &chpass_form },
 	{ "/newuser",        &newuser_form },
+	{ "/user",           &user_form },
 };
 #define NHTMLPAGES (sizeof(html_page)/sizeof(html_page[0]))
 

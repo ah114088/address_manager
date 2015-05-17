@@ -183,3 +183,64 @@ int newuser_process(struct Request *request)
 	fprintf(stderr, "new user %s %s\n", user->username, user->password);
 	return MHD_YES;
 }
+
+struct user_form_state {
+	int pos;
+	const struct user_struct *u; /* user iterator */
+	int fid; /* selector */
+};
+
+/*
+    pos:
+			0 static
+			1 user
+			2 static
+			3 done
+*/
+static ssize_t user_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
+{
+	struct user_form_state *ufs = cls;
+	char *p = buf;
+
+	switch (ufs->pos) {
+	case 0:
+		p = add_header(p, "Benutzer");
+		p = stpcpy(p, "<div id=\"main\">" \
+			"<table><tr><th>Benutzername</th><th>Gliederung</th></tr>");
+		ufs->pos++;
+		ufs->u = user_list;
+		return p - buf;
+
+	case 1:
+		while (ufs->u) {
+			if (in_formation(ufs->u->fid, ufs->fid)) {
+				p += sprintf(p, "<tr><td>%s</td><td>%s</td></tr>", ufs->u->username, get_formation(ufs->u->fid)->name);
+				ufs->u = ufs->u->next;
+				return p - buf;
+			}
+			ufs->u = ufs->u->next;
+		}
+		ufs->pos++;
+		/* no break */
+
+	case 2:
+		p = stpcpy(p, "</table></div>");
+		p = add_footer(p);
+		ufs->pos++;
+		return p - buf;
+
+	default:
+		return MHD_CONTENT_READER_END_OF_STREAM; /* no more bytes */
+	}	
+
+	return p - buf;
+}
+
+struct MHD_Response *user_form(struct Request *request)
+{
+	struct user_form_state *ufs;
+	if (!(ufs = (struct user_form_state *)calloc(1, sizeof(struct user_form_state))))
+		return NULL;
+	ufs->fid = request->session->logged_in->fid;
+	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &user_form_reader, ufs, &free);
+}

@@ -21,7 +21,7 @@ struct member_struct {
 };
 
 static struct member_struct *member_list = NULL;
-static int nmember;
+static int nmember = 0;
 
 static int cmp_member(const struct member_struct *a, const struct member_struct *b)
 {
@@ -46,49 +46,6 @@ static void add_member(struct member_struct *new)
 	new->next = NULL;
 	*mp = new;
 	return;
-}
-
-// UTF-8
-int read_member_list(const char *path)
-{
-	FILE *file;
-	char buffer[8][MAX_STR];
-	int i = 0;
-	struct member_struct *m; 
-
-	if (!(file=fopen(path, "r"))) 
-		return -1;
-
-	while (fscanf(file, "%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\t]\t%[^\n]\n", 
-			buffer[0], buffer[1], buffer[2], buffer[3],
-			buffer[4], buffer[5], buffer[6], buffer[7]) == 8) {
-
-		if (!(m = (struct member_struct *)malloc(sizeof(struct member_struct)))) { 
-			fprintf(stderr, "malloc() failure!!\n");
-			fclose(file);
-			return -1;
-		}
-		m->first     = strdup(buffer[0]);
-		m->second    = strdup(buffer[1]);
-		m->street    = strdup(buffer[2]);
-		m->house     = strdup(buffer[3]);
-		m->zip       = strdup(buffer[4]);
-		m->city      = strdup(buffer[5]);
-		m->email     = strdup(buffer[6]);
-		if (sscanf(buffer[7], "%d", &m->formation)!=1) {
-			fprintf(stderr, "bad formation number!!\n");
-			fclose(file);
-			return -1;
-		}
-		add_member(m);
-
-		/* fprintf(stderr, "read: %s %s\n", m->first, m->second); */
-		i++;
-	}
-		
-	fclose(file);
-
-	return i;
 }
 
 int member_iterator(void *cls, enum MHD_ValueKind kind, const char *key,

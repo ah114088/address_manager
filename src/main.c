@@ -513,31 +513,18 @@ static void expire_sessions(void)
 int main(int argc, char *const *argv) 
 {
   struct MHD_Daemon *d;
-	int n;
 
-  if (argc != 4) {
-		printf("usage: %s <port> <member_file> <formation_file>\n", argv[0]);
+  if (argc != 2) {
+		printf("usage: %s <port>\n", argv[0]);
 		return 1;
 	}
 
 	init_user_list();
 
-	if ((n=read_member_list(argv[2])) == -1) {	
-		return 1;
-	}
-  printf("read %d members\n", n);
-
-	if ((n=read_formation_list(argv[3])) == -1) {	
-		return 1;
-	}
-  printf("read %d formations\n", n);
-
   /* initialize PRNG */
   srand((unsigned int) time(NULL));
-  d = MHD_start_daemon(MHD_USE_DEBUG /* |MHD_USE_SSL */,
-                        atoi(argv[1]),
-                        NULL, NULL,
-			&create_response, NULL,
+  d = MHD_start_daemon(MHD_USE_DEBUG, atoi(argv[1]),
+						NULL, NULL, &create_response, NULL,
 			MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 15,
 			MHD_OPTION_NOTIFY_COMPLETED, &request_completed_callback, NULL,
 			MHD_OPTION_END);

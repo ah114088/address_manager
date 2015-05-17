@@ -9,7 +9,7 @@ struct formation_struct {
 };
 
 int parse_fid(const char *fid_str, int *fid);
-int read_formation_list(const char *file);
+int init_formation_list(void);
 int in_formation(int member_formation, int fid);
 
 struct MHD_Response *formation_form(struct Request *request);

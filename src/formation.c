@@ -9,7 +9,7 @@
 #include "member.h"
 
 static struct formation_struct *formation_list = NULL;
-static int nformation;
+static int nformation = 0;
 
 const struct formation_struct *get_formation_list(void)
 {
@@ -18,7 +18,7 @@ const struct formation_struct *get_formation_list(void)
 
 static void add_formation(struct formation_struct *new)
 {
-	int max_fid = 0;
+	int max_fid = -1;
 
 	struct formation_struct **fp;
 	for (fp = &formation_list; *fp; fp = &(*fp)->next)
@@ -37,49 +37,24 @@ struct formation_struct *get_formation(int fid)
 		;
 	return f;
 }
-
-int read_formation_list(const char *path) 
+int init_formation_list(void)
 {
-	FILE *file;
-	char buffer[3][MAX_STR];
-	int super, i = 0;
-	struct formation_struct *f, **fp = &formation_list;
+	struct formation_struct *f;
 
-	if (!(file=fopen(path, "r"))) 
+	if (!(f = (struct formation_struct *)malloc(sizeof(struct formation_struct)))) {
+		fprintf(stderr, "malloc() failure!!\n");
 		return -1;
-
-	while (fscanf(file, "%[^\t]\t%[^\t]\t%[^\n]\n", buffer[0], buffer[1], buffer[2]) == 3) {
-		if (!(f = (struct formation_struct *)malloc(sizeof(struct formation_struct)))) { 
-			fprintf(stderr, "malloc() failure!!\n");
-			fclose(file);
-			return -1;
-		}
-		f->name = strdup(buffer[1]);
-		f->fid = i;
-		f->next = NULL;
-
-		if (sscanf(buffer[2], "%d", &super)!=1) {
-			fprintf(stderr, "bad super formation!!\n");
-			fclose(file);
-			return -1;
-		}
-
-		if (!(f->super = get_formation(super)) && i != 0) {
-			fprintf(stderr, "no formation with fid %d!!\n", super);
-			fclose(file);
-			return -1;
-		}
-
-		*fp = f;
-		fp = &f->next;
-		/* fprintf(stderr, "read: %s %d\n", f->name, f->fid); */
-		i++;
 	}
-		
-	fclose(file);
 
-	nformation = i;
-	return i;
+	f->name = strdup("Bund");
+	f->next = NULL;
+	f->super = NULL;
+	f->fid = 0;
+
+	formation_list = f;	
+	nformation++;
+	
+	return 1;
 }
 
 int in_formation(int member_formation, int fid)
@@ -195,6 +170,10 @@ static ssize_t newformation_form_reader(void *cls, uint64_t pos, char *buf, size
 				"<tr><td>Übergeordnete Gliederung</td><td><select name=\"fid\">");
 		nfs->pos++;
 		nfs->f = formation_list;
+		if (nfs->f) {
+			p += sprintf(p, "<option value=\"-1\">Leer</option>");
+			nfs->pos++;
+		}
 		return p - buf;
 
 	case 1:
@@ -246,6 +225,7 @@ int newform_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
   fprintf(stderr, "Unsupported form value `%s'\n", key);
   return MHD_NO;
 }
+
 int newform_process(struct Request *request)
 {
 	struct formation_struct *f, *super;
@@ -254,8 +234,14 @@ int newform_process(struct Request *request)
 
 	/* TODO: check duplicate formation */
 
-	if (parse_fid(nr->fid, &super_fid)<0 ||!(super = get_formation(super_fid)))
-		return MHD_NO;
+	if (formation_list) {
+		if (parse_fid(nr->fid, &super_fid)<0 || !(super = get_formation(super_fid)))
+			return MHD_NO;
+	} else {
+		if (sscanf(nr->fid, "%d", &super_fid) != 1 && super_fid != -1)
+			return MHD_NO;
+		super = NULL;
+	}
 
 	if (!(f = (struct formation_struct *)malloc(sizeof(struct formation_struct)))) {
 		fprintf(stderr, "malloc() failure!!\n");
@@ -268,7 +254,7 @@ int newform_process(struct Request *request)
 	f->super = super;
 	add_formation(f);
 
-	fprintf(stderr, "new formation %s with fid %d as subformation of %s\n", f->name, f->fid, f->super->name);
+	fprintf(stderr, "new formation %s with fid %d as subformation of %s\n", f->name, f->fid, f->super ? f->super->name: "none");
 
 	return MHD_YES;
 }

@@ -8,6 +8,8 @@
 #include "formation.h"
 #include "member.h"
 
+#define EMPTY_STR "Leer"
+
 static struct formation_struct *formation_list = NULL;
 static int nformation = 0;
 
@@ -98,7 +100,7 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 	switch (ffs->pos) {
 	case 0:
 		p = add_header(p, "Gliederungen");
-		p = stpcpy(p, "<div id=\"main\"><table><tr><th>Gliederung</th><th>Mitglieder</th></tr>");
+		p = stpcpy(p, "<div id=\"main\"><table><tr><th>Gliederung</th><th>Mitglieder</th><th>Übergeordnete Gliederung</tr>");
 		ffs->pos++;
 		ffs->f = formation_list;
 		return p - buf;
@@ -110,6 +112,8 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 				p = stpcpy(p, ffs->f->name);
 				p = stpcpy(p, "</td><td>");
 				p += sprintf(p, "%d", member_count(ffs->f->fid));
+				p = stpcpy(p, "</td><td>");
+				p += sprintf(p, "%s", ffs->f->super ? ffs->f->super->name: EMPTY_STR);
 				p = stpcpy(p, "</td></tr>");
 				ffs->f = ffs->f->next;
 				return p - buf;
@@ -170,8 +174,8 @@ static ssize_t newformation_form_reader(void *cls, uint64_t pos, char *buf, size
 				"<tr><td>Übergeordnete Gliederung</td><td><select name=\"fid\">");
 		nfs->pos++;
 		nfs->f = formation_list;
-		if (nfs->f) {
-			p += sprintf(p, "<option value=\"-1\">Leer</option>");
+		if (!nfs->f) {
+			p += sprintf(p, "<option value=\"-1\">"EMPTY_STR"</option>");
 			nfs->pos++;
 		}
 		return p - buf;

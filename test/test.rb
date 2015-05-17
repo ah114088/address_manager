@@ -56,6 +56,22 @@ def newmember http, cookies, first, second, street, house, zip, city, email, fid
 	# puts res.body
 end
 
+def newformation http, cookies, name, fid
+	puts "# -- new formation"
+	req = Net::HTTP::Post.new('/newformation', { 'Cookie' => cookies })
+	req.set_form_data({"name" => name, "fid" => fid})
+	res = http.request(req)
+	# puts res.body
+end
+
+def newformation_bug http, cookies, name, fid
+	puts "# -- new formation"
+	req = Net::HTTP::Post.new('/newformation', { 'Cookie' => cookies })
+	req.set_form_data({"bug" => "bug", "name" => name, "fid" => fid})
+	res = http.request(req)
+	# puts res.body
+end
+
 if ARGV.length != 1
 	puts "usage: test.rb <URL>"
 	exit 1
@@ -107,4 +123,9 @@ logout(http, cookies)
 
 login(http, cookies, "admin", "admin")
 newmember(http, cookies, "Michaela", "Muster", "Kurfürstendamm", "11", "10707", "Berlin", "mm@gmx.de", 0)
+newformation(http, cookies, "Hongkong", "0")
 logout(http, cookies)
+
+# these cases should be tested as well
+# newformation(http, cookies, "Hongkong", "00000000") # shoult raise an error
+# newformation_bug(http, cookies, name, fid) # shoult raise an error

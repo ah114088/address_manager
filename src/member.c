@@ -99,7 +99,7 @@ int member_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 	struct MemberRequest *mr = (struct MemberRequest *)request->data;
 	COPY_AND_RETURN(mr, "fid", fid)
   fprintf(stderr, "Unsupported form value `%s'\n", key);
-  return MHD_YES;
+  return MHD_NO;
 }
 int member_process(struct Request *request)
 {
@@ -126,7 +126,7 @@ int newmember_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 	COPY_AND_RETURN(nr, "email", email)
 	COPY_AND_RETURN(nr, "fid", fid)
   fprintf(stderr, "Unsupported form value `%s'\n", key);
-  return MHD_YES;
+  return MHD_NO;
 }
 
 int newmember_process(struct Request *request)

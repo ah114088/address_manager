@@ -142,7 +142,7 @@ int newuser_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 	COPY_AND_RETURN(nr, "password", password)
 	COPY_AND_RETURN(nr, "fid", fid)
   fprintf(stderr, "Unsupported form value `%s'\n", key);
-  return MHD_YES;
+  return MHD_NO;
 }
 
 int newuser_process(struct Request *request)

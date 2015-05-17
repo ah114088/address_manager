@@ -191,12 +191,17 @@ static struct html_response html_page[] = {
 #define NHTMLPAGES (sizeof(html_page)/sizeof(html_page[0]))
 
 
-void to_str(uint64_t off, size_t size, size_t max, const char *data, char *dest)
+int to_str(uint64_t off, size_t size, size_t max, const char *data, char *dest)
 {
-	if (size + off >= max)
-		size = max - off - 1;
+	if (size == 0)
+		return MHD_YES;
+	if (size + off >= max) {
+		fprintf(stderr, "too many chars!!\n");
+		return MHD_NO;
+	}
 	memcpy(&dest[off], data, size);
 	dest[size+off] = '\0';
+	return MHD_YES;
 }
 
 static int login_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
@@ -209,7 +214,7 @@ static int login_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 	COPY_AND_RETURN(lr, "user", user)
 	COPY_AND_RETURN(lr, "password", password)
   fprintf(stderr, "Unsupported form value `%s'\n", key);
-  return MHD_YES;
+  return MHD_NO;
 }
 
 static int login_process(struct Request *request)
@@ -244,7 +249,7 @@ chpass_iterator(void *cls,
 	COPY_AND_RETURN(cr, "newpassword", newpassword)
 
   fprintf(stderr, "Unsupported form value `%s'\n", key);
-  return MHD_YES;
+  return MHD_NO;
 }
 int chpass_process(struct Request *request)
 {
@@ -354,7 +359,7 @@ create_response(void *cls,
 				}
 			} else {
 				fprintf(stderr, "Unknown POST request for url `%s'\n", url);
-				request->session->logged_in = NULL;
+				request->session->logged_in = NULL; /* should return MHD_HTTP_BAD_REQUEST ? */
 			}
 		}
 	}
@@ -363,8 +368,9 @@ create_response(void *cls,
   
   if (!strcmp(method, MHD_HTTP_METHOD_POST)) {
 		/* evaluate POST data */
-		if (request->pp)
-			MHD_post_process(request->pp, upload_data, *upload_data_size);
+		if (request->pp && !request->pp_error)
+			if (MHD_post_process(request->pp, upload_data, *upload_data_size)!=MHD_YES)
+				request->pp_error = 1; 
 
     /* fprintf(stderr, "upload_data_size: %zu\n", *upload_data_size); */
 		if (*upload_data_size) {
@@ -382,10 +388,13 @@ create_response(void *cls,
 
 		if (request->pi && request->pi->process) {
 			if (!request->pi->need_session || session->logged_in)
-				if (request->pi->process(request) != MHD_YES)
+				if (!request->pp_error && request->pi->process(request) != MHD_YES)
 					return MHD_NO;
 		}
 		method = MHD_HTTP_METHOD_GET; /* fake 'GET' */
+
+		if (request->pp_error)
+			request->session->logged_in = NULL; /* should return MHD_HTTP_BAD_REQUEST ? */
 	}
 
   if ((!strcmp(method, MHD_HTTP_METHOD_GET)) || (!strcmp(method, MHD_HTTP_METHOD_HEAD))) {

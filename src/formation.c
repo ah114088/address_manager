@@ -240,10 +240,11 @@ int newform_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 {
   struct Request *request = cls;
 	struct NewFormRequest *nr = (struct NewFormRequest *)request->data;
+
 	COPY_AND_RETURN(nr, "name", name)
 	COPY_AND_RETURN(nr, "fid", fid)
   fprintf(stderr, "Unsupported form value `%s'\n", key);
-  return MHD_YES;
+  return MHD_NO;
 }
 int newform_process(struct Request *request)
 {

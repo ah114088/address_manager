@@ -60,7 +60,7 @@ static ssize_t newuser_form_reader(void *cls, uint64_t pos, char *buf, size_t ma
 	case 0:
 		p = add_header(p, "Benutzer hinzufügen");
 		p = stpcpy(p, "<div id=\"main\">" \
-			"<p><form action=\"/newuser\" method=\"POST\">" "<select name=\"fid\">");
+			"<form action=\"/newuser\" method=\"POST\">" "<p>Gliederung: <select name=\"fid\">");
 		nfs->pos++;
 		nfs->f = get_formation_list();
 		return p - buf;
@@ -76,10 +76,10 @@ static ssize_t newuser_form_reader(void *cls, uint64_t pos, char *buf, size_t ma
 		/* no break */
 
 	case 2:
-		p = stpcpy(p, "</select>Benutzername: <input name=\"username\" type=\"text\" size=\"12\" maxlength=\"12\">" \
-			"Neues Passwort: <input name=\"password\" type=\"password\" size=\"12\" maxlength=\"12\">" \
+		p = stpcpy(p, "</select><br>Benutzername: <input name=\"username\" type=\"text\" size=\"12\" maxlength=\"12\">" \
+			"<br>Neues Passwort: <input name=\"password\" type=\"password\" size=\"12\" maxlength=\"12\">" \
 			"<input type=\"submit\" value=\"Hinzufügen\">" \
-			"</form></p></div>");
+			"</p></form></div>");
 		p = add_footer(p);
 		nfs->pos++;
 		return p - buf;

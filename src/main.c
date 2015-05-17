@@ -21,6 +21,7 @@
 	"<div id=\"nav\">" \
 		"<ul>" \
 			"<li><a href=\"/member\">Mitglieder</a></li>" \
+			"<li><a href=\"/newmember\">Neues Mitglied</a></li>" \
 			"<li><a href=\"/formation\">Gliederungen</a></li>" \
 			"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
 			"<li><a href=\"/user\">Benutzer</a></li>" \
@@ -179,6 +180,7 @@ static struct html_response html_page[] = {
 	{ "/",               &welcome_form, },
 	{ "/login",          &login_form },
 	{ "/member",         &member_form },
+	{ "/newmember",      &newmember_form },
 	{ "/formation",      &formation_form },
 	{ "/chpass",         &chpass_form },
 	{ "/newuser",        &newuser_form },
@@ -202,14 +204,8 @@ static int login_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
   struct Request *request = cls;
 	struct LoginRequest *lr = (struct LoginRequest *)request->data;
 
-  if (!strcmp("user", key)) {
-		to_str(off, size, sizeof(lr->user), data, lr->user);		
-		return MHD_YES;
-	}
-  if (!strcmp("password", key)) {
-		to_str(off, size, sizeof(lr->password), data, lr->password);		
-		return MHD_YES;
-	}
+	COPY_AND_RETURN(lr, "user", user)
+	COPY_AND_RETURN(lr, "password", password)
   fprintf(stderr, "Unsupported form value `%s'\n", key);
   return MHD_YES;
 }
@@ -243,10 +239,8 @@ chpass_iterator(void *cls,
   struct Request *request = cls;
   struct ChpassRequest *cr = (struct ChpassRequest *)request->data;
 
-	if (!strcmp("newpassword", key)) {
-		to_str(off, size, sizeof(cr->newpassword), data, cr->newpassword);		
-		return MHD_YES;
-	}
+	COPY_AND_RETURN(cr, "newpassword", newpassword)
+
   fprintf(stderr, "Unsupported form value `%s'\n", key);
   return MHD_YES;
 }
@@ -261,11 +255,12 @@ int chpass_process(struct Request *request)
 static const struct PostIterator *find_iter(const char *url)
 {
 	static const struct PostIterator post_request[] = {
-		{ "/",          sizeof(struct LoginRequest),   login_iterator,  login_process,  0 },
-		{ "/chpass",    sizeof(struct ChpassRequest),  chpass_iterator, chpass_process, 1 },
-		{ "/logout",    0,                             NULL,            logout_process, 1 },
-		{ "/member",    sizeof(struct MemberRequest),  member_iterator, member_process, 1 },
-		{ "/newuser",   sizeof(struct NewuserRequest), newuser_iterator, newuser_process, 1 },
+		{ "/",          sizeof(struct LoginRequest),     login_iterator,     login_process,  0 },
+		{ "/chpass",    sizeof(struct ChpassRequest),    chpass_iterator,    chpass_process, 1 },
+		{ "/logout",    0,                               NULL,               logout_process, 1 },
+		{ "/member",    sizeof(struct MemberRequest),    member_iterator,    member_process, 1 },
+		{ "/newmember", sizeof(struct NewMemberRequest), newmember_iterator, newmember_process, 1 },
+		{ "/newuser",   sizeof(struct NewuserRequest),   newuser_iterator,   newuser_process, 1 },
 	};
 	int i;
 	

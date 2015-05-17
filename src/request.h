@@ -53,6 +53,13 @@ struct Session {
 
 char *add_header(char *p, const char *title);
 char *add_footer(char *p);
+
 void to_str(uint64_t off, size_t size, size_t max, const char *data, char *dest);
+
+#define COPY_AND_RETURN(request, key_str, field)\
+  if (!strcmp(key_str, key)) {\
+		to_str(off, size, sizeof(request->field), data, request->field);\
+		return MHD_YES;\
+	}
 
 #endif

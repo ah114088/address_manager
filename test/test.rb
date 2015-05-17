@@ -47,6 +47,15 @@ def newuser http, cookies, username, password, fid
 	# puts res.body
 end
 
+def newmember http, cookies, first, second, street, house, zip, city, email, fid
+	puts "# -- new member"
+	req = Net::HTTP::Post.new('/newmember', { 'Cookie' => cookies })
+	req.set_form_data({"first" => first, "second" => second, "street" => street, "house" => house, 
+			"zip" => zip, "city" => city, "email" => email, "fid" => fid})
+	res = http.request(req)
+	# puts res.body
+end
+
 if ARGV.length != 1
 	puts "usage: test.rb <URL>"
 	exit 1
@@ -94,4 +103,8 @@ newuser(http, cookies, "mfr", "mfr", "0")
 logout(http, cookies)
 
 login(http, cookies, "mfr", "mfr")
+logout(http, cookies)
+
+login(http, cookies, "admin", "admin")
+newmember(http, cookies, "Michaela", "Muster", "Kurfürstendamm", "11", "10707", "Berlin", "mm@gmx.de", 0)
 logout(http, cookies)

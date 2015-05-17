@@ -138,19 +138,9 @@ int newuser_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
   struct Request *request = cls;
 	struct NewuserRequest *nr = (struct NewuserRequest *)request->data;
 
-  if (!strcmp("username", key)) {
-		to_str(off, size, sizeof(nr->username), data, nr->username);		
-		return MHD_YES;
-	}
-  if (!strcmp("password", key)) {
-		to_str(off, size, sizeof(nr->password), data, nr->password);		
-		return MHD_YES;
-	}
-  if (!strcmp("fid", key)) {
-		to_str(off, size, sizeof(nr->fid), data, nr->fid);		
-		return MHD_YES;
-	}
-
+	COPY_AND_RETURN(nr, "username", username)
+	COPY_AND_RETURN(nr, "password", password)
+	COPY_AND_RETURN(nr, "fid", fid)
   fprintf(stderr, "Unsupported form value `%s'\n", key);
   return MHD_YES;
 }

@@ -8,7 +8,6 @@
 #include "user.h"
 #include "formation.h"
 
-struct member_struct;
 struct member_struct {
 	struct member_struct *next;
 	char *first;
@@ -36,6 +35,7 @@ static void add_member(struct member_struct *new)
 {
 	struct member_struct **mp;
 
+	nmember++;
 	for (mp = &member_list; *mp; mp = &(*mp)->next) {
 		if (cmp_member(*mp, new) > 0) {
 			new->next = *mp;
@@ -43,6 +43,7 @@ static void add_member(struct member_struct *new)
 			return;
 		}
 	}
+	new->next = NULL;
 	*mp = new;
 	return;
 }
@@ -74,7 +75,6 @@ int read_member_list(const char *path)
 		m->zip       = strdup(buffer[4]);
 		m->city      = strdup(buffer[5]);
 		m->email     = strdup(buffer[6]);
-		m->next = NULL;
 		if (sscanf(buffer[7], "%d", &m->formation)!=1) {
 			fprintf(stderr, "bad formation number!!\n");
 			fclose(file);
@@ -88,7 +88,6 @@ int read_member_list(const char *path)
 		
 	fclose(file);
 
-	nmember = i;
 	return i;
 }
 
@@ -98,11 +97,8 @@ int member_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
 {
   struct Request *request = cls;
 	struct MemberRequest *mr = (struct MemberRequest *)request->data;
-
-  if (!strcmp("fid", key)) {
-		to_str(off, size, sizeof(mr->fid), data, mr->fid);		
-		return MHD_YES;
-	}
+	COPY_AND_RETURN(mr, "fid", fid)
+  fprintf(stderr, "Unsupported form value `%s'\n", key);
   return MHD_YES;
 }
 int member_process(struct Request *request)
@@ -112,6 +108,56 @@ int member_process(struct Request *request)
 	if (parse_fid(mr->fid, &fid) < 0 || !in_formation(fid, request->session->logged_in->fid))
   	return MHD_NO;
   return MHD_YES;
+}
+
+int newmember_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
+	       const char *filename, const char *content_type, const char *transfer_encoding,
+	       const char *data, uint64_t off, size_t size)
+{
+  struct Request *request = cls;
+	struct NewMemberRequest *nr = (struct NewMemberRequest *)request->data;
+
+	COPY_AND_RETURN(nr, "first", first)
+	COPY_AND_RETURN(nr, "second", second)
+	COPY_AND_RETURN(nr, "street", street)
+	COPY_AND_RETURN(nr, "house", house)
+	COPY_AND_RETURN(nr, "zip", zip)
+	COPY_AND_RETURN(nr, "city", city)
+	COPY_AND_RETURN(nr, "email", email)
+	COPY_AND_RETURN(nr, "fid", fid)
+  fprintf(stderr, "Unsupported form value `%s'\n", key);
+  return MHD_YES;
+}
+
+int newmember_process(struct Request *request)
+{
+	struct member_struct *member;
+	struct NewMemberRequest *nr = request->data;
+	int fid;
+
+	/* TODO: check duplicate member */
+
+	if (parse_fid(nr->fid, &fid)<0)
+		return MHD_NO;
+
+	if (!(member = (struct member_struct *)malloc(sizeof(struct member_struct)))) {
+		fprintf(stderr, "malloc() failure!!\n");
+		return MHD_NO;
+	}
+
+	/* TODO: check data consistency */
+	/* TODO: check malloc failure */
+	member->first = strdup(nr->first);
+	member->second = strdup(nr->second);
+	member->street = strdup(nr->street);
+	member->house = strdup(nr->house);
+	member->zip = strdup(nr->zip);
+	member->city = strdup(nr->city);
+	member->email = strdup(nr->email);
+	member->formation = fid;
+	add_member(member);
+
+	return MHD_YES;
 }
 
 struct member_form_state {
@@ -222,6 +268,77 @@ struct MHD_Response *member_form(struct Request *request)
 	mfs->request = request;
 
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &member_form_reader, mfs, &free);
+}
+struct newmember_form_state {
+	int pos; /* state machine */
+	int fid; /* selector */
+	const struct formation_struct *f; /* formation iterator */
+};
+
+/*
+    pos:
+			0 static
+			1 formation
+			2 static
+			3 done
+*/
+static ssize_t newmember_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
+{
+	struct newmember_form_state *nfs = cls;
+	char *p = buf;
+
+	switch (nfs->pos) {
+	case 0:
+		p = add_header(p, "Neues Mitglied");
+		p = stpcpy(p, "<div id=\"main\"><form action=\"/newmember\" method=\"POST\">" \
+				"<table>" \
+				"<tr><td>Vorname</td><td><input name=\"first\" type=\"text\"></td></tr>" \
+				"<tr><td>Nachname</td><td><input name=\"second\" type=\"text\"></td></tr>" \
+				"<tr><td>Straße</td><td><input name=\"street\" type=\"text\"></td></tr>" \
+				"<tr><td>Haus-Nr.</td><td><input name=\"house\" type=\"text\"></td></tr>" \
+				"<tr><td>PLZ</td><td><input name=\"zip\" type=\"text\"></td></tr>" \
+				"<tr><td>Ort</td><td><input name=\"city\" type=\"text\"></td></tr>" \
+				"<tr><td>Email</td><td><input name=\"email\" type=\"text\"></td></tr>"
+				"<tr><td>Gliederung</td><td><select name=\"fid\">");
+		nfs->pos++;
+		nfs->f = get_formation_list();
+		return p - buf;
+		
+	case 1:
+		while (nfs->f) {
+			if (in_formation(nfs->f->fid, nfs->fid)) {
+				p += sprintf(p, "<option value=\"%d\">%s</option>", nfs->f->fid, nfs->f->name);
+				nfs->f = nfs->f->next;
+				return p - buf;
+			}
+			nfs->f = nfs->f->next;
+		}
+		nfs->pos++;
+		/* no break */
+
+	case 2:
+		p = stpcpy(p, "</select></td></tr></table>" \
+			"<input type=\"submit\" value=\"Hinzufügen\">" \
+			"</form></div>");
+		p = add_footer(p);
+		nfs->pos++;
+		return p - buf;
+
+	default:
+		return MHD_CONTENT_READER_END_OF_STREAM; /* no more bytes */
+	}
+}
+
+struct MHD_Response *newmember_form(struct Request *request)
+{
+	struct newmember_form_state *nfs;
+
+	if (!(nfs = (struct newmember_form_state *)calloc(1, sizeof(struct newmember_form_state))))
+		return NULL;
+
+	nfs->fid = request->session->logged_in->fid;
+
+	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &newmember_form_reader, nfs, &free);
 }
 
 int member_count(int fid)

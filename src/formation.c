@@ -16,6 +16,20 @@ const struct formation_struct *get_formation_list(void)
 	return formation_list;
 }
 
+static void add_formation(struct formation_struct *new)
+{
+	int max_fid = 0;
+
+	struct formation_struct **fp;
+	for (fp = &formation_list; *fp; fp = &(*fp)->next)
+		if ((*fp)->fid > max_fid)
+			max_fid = (*fp)->fid;
+	new->next = NULL;
+	new->fid = max_fid + 1;
+	*fp = new;
+	nformation++;
+}
+
 struct formation_struct *get_formation(int fid)
 {
 	struct formation_struct *f = formation_list;
@@ -91,7 +105,7 @@ int parse_fid(const char *fid_str, int *fid)
 struct formation_form_state {
 	int pos;
 	const struct formation_struct *f; /* formation iterator */
-	struct Request *request;
+	int fid; /* selector */
 };
 
 /*
@@ -105,19 +119,18 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 {
 	struct formation_form_state *ffs = cls;
 	char *p = buf;
-	struct user_struct *user = ffs->request->session->logged_in;
 
 	switch (ffs->pos) {
 	case 0:
 		p = add_header(p, "Gliederungen");
-		p = stpcpy(p, "<body><div id=\"main\"><table><tr><th>Gliederung</th><th>Mitglieder</th></tr>");
+		p = stpcpy(p, "<div id=\"main\"><table><tr><th>Gliederung</th><th>Mitglieder</th></tr>");
 		ffs->pos++;
 		ffs->f = formation_list;
 		return p - buf;
 
 	case 1:
 		while (ffs->f) {
-			if (in_formation(ffs->f->fid, user->fid)) {
+			if (in_formation(ffs->f->fid, ffs->fid)) {
 				p = stpcpy(p, "<tr><td>");
 				p = stpcpy(p, ffs->f->name);
 				p = stpcpy(p, "</td><td>");
@@ -132,10 +145,10 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 		/* no break */
 
 	case 2:
-			p = stpcpy(p, "</table></div>");
-			p = add_footer(p);
-			ffs->pos++;
-			return p - buf;
+		p = stpcpy(p, "</table></div>");
+		p = add_footer(p);
+		ffs->pos++;
+		return p - buf;
 	
 	case 3:
 	default:
@@ -150,7 +163,111 @@ struct MHD_Response *formation_form(struct Request *request)
 	struct formation_form_state *mfs;
 	if (!(mfs = (struct formation_form_state *)calloc(1, sizeof(struct formation_form_state))))
 		return NULL;
-	mfs->request = request;
+	mfs->fid = request->session->logged_in->fid;
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &formation_form_reader, mfs, &free);
 }
 
+struct newformation_form_state {
+	int pos;
+	const struct formation_struct *f; /* formation iterator */
+	int fid; /* selector */
+};
+
+/*
+    pos:
+			0 static
+			1 formation
+			2 static
+			3 done
+*/
+static ssize_t newformation_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
+{
+	struct newformation_form_state *nfs = cls;
+	char *p = buf;
+
+	switch (nfs->pos) {
+	case 0:
+		p = add_header(p, "Gliederung hinzufügen");
+		p = stpcpy(p, "<div id=\"main\">" \
+				"<form action=\"/newformation\" method=\"POST\">" \
+				"<table>" \
+				"<tr><td>Name</td><td><input name=\"name\" type=\"text\"></td></tr>" \
+				"<tr><td>Übergeordnete Gliederung</td><td><select name=\"fid\">");
+		nfs->pos++;
+		nfs->f = formation_list;
+		return p - buf;
+
+	case 1:
+		while (nfs->f) {
+			if (in_formation(nfs->f->fid, nfs->fid)) {
+				p += sprintf(p, "<option value=\"%d\">%s</option>", nfs->f->fid, nfs->f->name);
+				nfs->f = nfs->f->next;
+				return p - buf;
+			}
+			nfs->f = nfs->f->next;
+		} 
+		nfs->pos++;
+		/* no break */
+
+	case 2:
+		p = stpcpy(p, "</select></td></tr></table>" \
+			"<input type=\"submit\" value=\"Hinzufügen\">" \
+			"</form></div>");
+		p = add_footer(p);
+		nfs->pos++;
+		return p - buf;
+	
+	case 3:
+	default:
+		return MHD_CONTENT_READER_END_OF_STREAM; /* no more bytes */
+	}	
+
+	return p - buf;
+}
+
+struct MHD_Response *newformation_form(struct Request *request)
+{
+	struct newformation_form_state *nfs;
+	if (!(nfs = (struct newformation_form_state *)calloc(1, sizeof(struct newformation_form_state))))
+		return NULL;
+	nfs->fid = request->session->logged_in->fid;
+	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &newformation_form_reader, nfs, &free);
+}
+
+int newform_iterator(void *cls, enum MHD_ValueKind kind, const char *key,
+	       const char *filename, const char *content_type, const char *transfer_encoding,
+	       const char *data, uint64_t off, size_t size)
+{
+  struct Request *request = cls;
+	struct NewFormRequest *nr = (struct NewFormRequest *)request->data;
+	COPY_AND_RETURN(nr, "name", name)
+	COPY_AND_RETURN(nr, "fid", fid)
+  fprintf(stderr, "Unsupported form value `%s'\n", key);
+  return MHD_YES;
+}
+int newform_process(struct Request *request)
+{
+	struct formation_struct *f, *super;
+	struct NewFormRequest *nr = request->data;
+	int super_fid;
+
+	/* TODO: check duplicate formation */
+
+	if (parse_fid(nr->fid, &super_fid)<0 ||!(super = get_formation(super_fid)))
+		return MHD_NO;
+
+	if (!(f = (struct formation_struct *)malloc(sizeof(struct formation_struct)))) {
+		fprintf(stderr, "malloc() failure!!\n");
+		return MHD_NO;
+	}
+
+	/* TODO: check data consistency */
+	/* TODO: check malloc failure */
+	f->name = strdup(nr->name);
+	f->super = super;
+	add_formation(f);
+
+	fprintf(stderr, "new formation %s with fid %d as subformation of %s\n", f->name, f->fid, f->super->name);
+
+	return MHD_YES;
+}

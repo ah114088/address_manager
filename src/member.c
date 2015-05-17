@@ -290,7 +290,8 @@ static ssize_t newmember_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 	switch (nfs->pos) {
 	case 0:
 		p = add_header(p, "Neues Mitglied");
-		p = stpcpy(p, "<div id=\"main\"><form action=\"/newmember\" method=\"POST\">" \
+		p = stpcpy(p, "<div id=\"main\">" \
+				"<form action=\"/newmember\" method=\"POST\">" \
 				"<table>" \
 				"<tr><td>Vorname</td><td><input name=\"first\" type=\"text\"></td></tr>" \
 				"<tr><td>Nachname</td><td><input name=\"second\" type=\"text\"></td></tr>" \

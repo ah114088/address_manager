@@ -20,7 +20,7 @@ struct NewMemberRequest {
 	char zip[MAX_STR];
 	char city[MAX_STR];
 	char email[MAX_STR];
-	char fid[MAX_STR];
+  char fid[6];
 };
 
 int newmember_iterator(void *cls, enum MHD_ValueKind kind, const char *key,

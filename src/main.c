@@ -23,9 +23,10 @@
 			"<li><a href=\"/member\">Mitglieder</a></li>" \
 			"<li><a href=\"/newmember\">Neues Mitglied</a></li>" \
 			"<li><a href=\"/formation\">Gliederungen</a></li>" \
-			"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
+ 			"<li><a href=\"/newformation\">Neue Gliederung</a></li>" \
 			"<li><a href=\"/user\">Benutzer</a></li>" \
 			"<li><a href=\"/newuser\">Neuer Benutzer</a></li>" \
+			"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
 			"<li>" \
 				"<form action=\"/logout\" method=\"post\">" \
 					"<input type=\"submit\" value=\"Logout\">" \
@@ -182,9 +183,10 @@ static struct html_response html_page[] = {
 	{ "/member",         &member_form },
 	{ "/newmember",      &newmember_form },
 	{ "/formation",      &formation_form },
-	{ "/chpass",         &chpass_form },
-	{ "/newuser",        &newuser_form },
+	{ "/newformation",   &newformation_form },
 	{ "/user",           &user_form },
+	{ "/newuser",        &newuser_form },
+	{ "/chpass",         &chpass_form },
 };
 #define NHTMLPAGES (sizeof(html_page)/sizeof(html_page[0]))
 
@@ -255,12 +257,13 @@ int chpass_process(struct Request *request)
 static const struct PostIterator *find_iter(const char *url)
 {
 	static const struct PostIterator post_request[] = {
-		{ "/",          sizeof(struct LoginRequest),     login_iterator,     login_process,  0 },
-		{ "/chpass",    sizeof(struct ChpassRequest),    chpass_iterator,    chpass_process, 1 },
-		{ "/logout",    0,                               NULL,               logout_process, 1 },
-		{ "/member",    sizeof(struct MemberRequest),    member_iterator,    member_process, 1 },
-		{ "/newmember", sizeof(struct NewMemberRequest), newmember_iterator, newmember_process, 1 },
-		{ "/newuser",   sizeof(struct NewuserRequest),   newuser_iterator,   newuser_process, 1 },
+		{ "/",             sizeof(struct LoginRequest),     login_iterator,     login_process,  0 },
+		{ "/chpass",       sizeof(struct ChpassRequest),    chpass_iterator,    chpass_process, 1 },
+		{ "/logout",       0,                               NULL,               logout_process, 1 },
+		{ "/member",       sizeof(struct MemberRequest),    member_iterator,    member_process, 1 },
+		{ "/newmember",    sizeof(struct NewMemberRequest), newmember_iterator, newmember_process, 1 },
+		{ "/newuser",      sizeof(struct NewuserRequest),   newuser_iterator,   newuser_process, 1 },
+		{ "/newformation", sizeof(struct NewFormRequest),   newform_iterator,   newform_process, 1 },
 	};
 	int i;
 	

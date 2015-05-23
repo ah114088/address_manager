@@ -8,7 +8,7 @@
 #include "formation.h"
 #include "member.h"
 
-#define EMPTY_STR "Leer"
+#define EMPTY_STR "---"
 
 static struct formation_struct *formation_list = NULL;
 static int nformation = 0;

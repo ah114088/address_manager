@@ -19,12 +19,16 @@ struct PostIterator {
   int need_session;
 };
 
+#define ERROR_INVALID_REQUEST (1<<0)
+#define ERROR_USER_ERROR (1<<1)
+
 struct Request {
   struct Session *session; /* Associated session */
   struct MHD_PostProcessor *pp; /* Post processor handling form data (IF this is a POST request) */
 	void *data;
 	const struct PostIterator *pi;
-	int pp_error; /* error while processing POST request */
+	unsigned int pp_error; /* error while processing POST request */
+	void *pp_required;
 };
 
 struct Session {

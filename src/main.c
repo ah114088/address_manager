@@ -17,26 +17,6 @@
 #define HEADER_PART2 "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">" CSS_LINK "</head><body>"
 #define TOP "<div id=\"top\">Adressverwaltung</div>"
 
-#define NAVIGATION \
-	"<div id=\"nav\">" \
-		"<ul>" \
-			"<li><a href=\"/member\">Mitglieder</a></li>" \
-			"<li><a href=\"/newmember\">Neues Mitglied</a></li>" \
-			"<li><a href=\"/formation\">Gliederungen</a></li>" \
- 			"<li><a href=\"/newformation\">Neue Gliederung</a></li>" \
-			"<li><a href=\"/user\">Benutzer</a></li>" \
-			"<li><a href=\"/newuser\">Neuer Benutzer</a></li>" \
-			"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
-			"<li>" \
-				"<form action=\"/logout\" method=\"post\">" \
-					"<input type=\"submit\" value=\"Logout\">" \
-				"</form>" \
-			"</li>" \
-		"</ul>" \
-	"</div>"
-
-#define FOOTER "</body></html>"
-
 /**
  * Invalid method page.
  */
@@ -67,14 +47,27 @@
 char *add_header(char *p, const char *title)
 {
 	p += sprintf(p, HEADER_PART1 "<title>%s</title>" HEADER_PART2 TOP, title);
-	p = stpcpy(p, NAVIGATION);
+	p = stpcpy(p, "<div id=\"nav\"><ul>" );
+	if (get_formation_list())
+		p = stpcpy(p, "<li><a href=\"/member\">Mitglieder</a></li>" \
+									"<li><a href=\"/newmember\">Neues Mitglied</a></li>" \
+ 									"<li><a href=\"/formation\">Gliederungen</a></li>");
+	p = stpcpy(p,
+ 			"<li><a href=\"/newformation\">Neue Gliederung</a></li>" \
+			"<li><a href=\"/user\">Benutzer</a></li>" \
+			"<li><a href=\"/newuser\">Neuer Benutzer</a></li>" \
+			"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
+			"<li>" \
+				"<form action=\"/logout\" method=\"post\">" \
+					"<input type=\"submit\" value=\"Logout\">" \
+				"</form>" \
+			"</li>" \
+		"</ul>" \
+	"</div>");
 	return p;
 }
-char *add_footer(char *p)
-{
-	return stpcpy(p, FOOTER);
-}
 
+char *add_footer(char *p) { return stpcpy(p, "</body></html>"); }
 
 /**
  * Data kept per request.
@@ -368,9 +361,9 @@ create_response(void *cls,
   
   if (!strcmp(method, MHD_HTTP_METHOD_POST)) {
 		/* evaluate POST data */
-		if (request->pp && !request->pp_error)
+		if (request->pp && !(request->pp_error & ERROR_INVALID_REQUEST))
 			if (MHD_post_process(request->pp, upload_data, *upload_data_size)!=MHD_YES)
-				request->pp_error = 1; 
+				request->pp_error = ERROR_INVALID_REQUEST; 
 
     /* fprintf(stderr, "upload_data_size: %zu\n", *upload_data_size); */
 		if (*upload_data_size) {
@@ -388,12 +381,12 @@ create_response(void *cls,
 
 		if (request->pi && request->pi->process) {
 			if (!request->pi->need_session || session->logged_in)
-				if (!request->pp_error && request->pi->process(request) != MHD_YES)
+				if (!(request->pp_error & ERROR_INVALID_REQUEST) && request->pi->process(request) != MHD_YES)
 					return MHD_NO;
 		}
 		method = MHD_HTTP_METHOD_GET; /* fake 'GET' */
 
-		if (request->pp_error)
+		if (request->pp_error & ERROR_INVALID_REQUEST)
 			request->session->logged_in = NULL; /* should return MHD_HTTP_BAD_REQUEST ? */
 	}
 
@@ -475,6 +468,8 @@ request_completed_callback(void *cls,
 	/* fprintf(stderr, "free() request %p\n", request); */
   if (request->data)
 		free(request->data);
+  if (request->pp_required)
+		free(request->pp_required);
 	free(request);
 }
 

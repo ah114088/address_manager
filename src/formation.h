@@ -1,6 +1,9 @@
 #ifndef __FORMATION_H
 #define __FORMATION_H
 
+#define FID_ANY -1
+#define FID_NONE -2
+
 struct formation_struct {
 	struct formation_struct *next;
 	char *name;

@@ -8,30 +8,26 @@
 #include "formation.h"
 #include "member.h"
 
-struct user_struct *user_list = NULL;
+#define FORMATION -1
+
+static struct user_struct *user_list = NULL;
+static struct user_struct super_user = { NULL, "Superuser", "Superuser", FID_ANY };
 
 struct newuser_form_state {
 	int pos;
 	const struct formation_struct *f; /* formation iterator */
 };
 
-int init_user_list(void)
+struct user_struct *auth_user(const char *username, const char *password)
 {
 	struct user_struct *user;
+	if (!strcmp(super_user.username, username) && !strcmp(super_user.password, username))
+		return &super_user;
+	if ((user = find_user(username)) && !strcmp(user->password, password))
+		return user;
 
-	if (!(user = (struct user_struct *)malloc(sizeof(struct user_struct)))) {
-		fprintf(stderr, "malloc() failure!!\n");
-		return -1;
-	}
+	return NULL;
 
-	user->next = NULL;
-	strcpy(user->username, "admin");
-	strcpy(user->password, "admin");
-	user->fid = 0;
-
-	user_list = user;	
-	
-	return 1;
 }
 
 struct user_struct *find_user(const char *username)

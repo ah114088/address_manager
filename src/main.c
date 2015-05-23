@@ -222,7 +222,8 @@ static int login_process(struct Request *request)
 	struct user_struct *user;
 	struct LoginRequest *lr = (struct LoginRequest *)request->data;
 	fprintf(stderr, "login %s %s\n", lr->user, lr->password);
-	if ((user = find_user(lr->user)) && !strcmp(user->password, lr->password))
+
+	if ((user = auth_user(lr->user,lr->password)))
 		request->session->logged_in = user;
   return MHD_YES;
 }
@@ -518,8 +519,6 @@ int main(int argc, char *const *argv)
 		printf("usage: %s <port>\n", argv[0]);
 		return 1;
 	}
-
-	init_user_list();
 
   /* initialize PRNG */
   srand((unsigned int) time(NULL));

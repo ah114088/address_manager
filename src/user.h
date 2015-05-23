@@ -11,8 +11,9 @@ struct user_struct {
 	int fid;
 };
 
-int init_user_list(void);
 struct user_struct *find_user(const char *username);
+
+struct user_struct *auth_user(const char *username, const char *password);
 
 struct MHD_Response *newuser_form(struct Request *request);
 struct MHD_Response *user_form(struct Request *request);

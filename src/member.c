@@ -143,7 +143,7 @@ static ssize_t member_form_reader(void *cls, uint64_t pos, char *buf, size_t max
 
 	switch (mfs->pos) {
 	case 0: 
-		p = add_header(p, "Mitglieder");
+		p = add_header(p, "Mitglieder", mfs->request);
 		p = stpcpy(p, "<div id=\"main\"><form action=\"/member\" method=\"POST\"><p><select name=\"fid\">");
 		mfs->pos++;
 		mfs->f = get_formation_list();
@@ -230,6 +230,7 @@ struct newmember_form_state {
 	int pos; /* state machine */
 	int fid; /* selector */
 	const struct formation_struct *f; /* formation iterator */
+	struct Request *request;
 };
 
 /*
@@ -246,7 +247,7 @@ static ssize_t newmember_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 
 	switch (nfs->pos) {
 	case 0:
-		p = add_header(p, "Neues Mitglied");
+		p = add_header(p, "Neues Mitglied", nfs->request);
 		p = stpcpy(p, "<div id=\"main\">" \
 				"<form action=\"/newmember\" method=\"POST\">" \
 				"<table>" \

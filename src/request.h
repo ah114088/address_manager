@@ -52,7 +52,7 @@ struct Session {
 	struct user_struct *logged_in;
 };
 
-char *add_header(char *p, const char *title);
+char *add_header(char *p, const char *title, const struct Request *r);
 char *add_footer(char *p);
 
 int to_str(uint64_t off, size_t size, size_t max, const char *data, char *dest);

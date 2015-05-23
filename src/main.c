@@ -18,22 +18,6 @@
 #define TOP "<div id=\"top\">Adressverwaltung</div>"
 
 #define NAVIGATION \
-	"<div id=\"nav\">" \
-		"<ul>" \
-			"<li><a href=\"/member\">Mitglieder</a></li>" \
-			"<li><a href=\"/newmember\">Neues Mitglied</a></li>" \
-			"<li><a href=\"/formation\">Gliederungen</a></li>" \
- 			"<li><a href=\"/newformation\">Neue Gliederung</a></li>" \
-			"<li><a href=\"/user\">Benutzer</a></li>" \
-			"<li><a href=\"/newuser\">Neuer Benutzer</a></li>" \
-			"<li><a href=\"/chpass\">Passwort ändern</a></li>" \
-			"<li>" \
-				"<form action=\"/logout\" method=\"post\">" \
-					"<input type=\"submit\" value=\"Logout\">" \
-				"</form>" \
-			"</li>" \
-		"</ul>" \
-	"</div>"
 
 #define FOOTER "</body></html>"
 
@@ -64,10 +48,27 @@
 #define COOKIE_NAME "session"
 
 
-char *add_header(char *p, const char *title)
+char *add_header(char *p, const char *title, const struct Request *r)
 {
 	p += sprintf(p, HEADER_PART1 "<title>%s</title>" HEADER_PART2 TOP, title);
-	p = stpcpy(p, NAVIGATION);
+	p = stpcpy(p, "<div id=\"nav\"><ul>");
+	if (r->session->logged_in->fid != FID_ANY)
+		p = stpcpy(p, "<li><a href=\"/member\">Mitglieder</a></li>" \
+			"<li><a href=\"/newmember\">Neues Mitglied</a></li>");
+	if (get_formation_list()) 
+		p = stpcpy(p, "<li><a href=\"/formation\">Gliederungen</a></li>");
+	p = stpcpy(p, "<li><a href=\"/newformation\">Neue Gliederung</a></li>");
+	if (get_formation_list()) 
+		p = stpcpy(p, "<li><a href=\"/user\">Benutzer</a></li>" \
+			"<li><a href=\"/newuser\">Neuer Benutzer</a></li>");
+	p = stpcpy(p, "<li><a href=\"/chpass\">Passwort ändern</a></li>" \
+			"<li>" \
+				"<form action=\"/logout\" method=\"post\">" \
+					"<input type=\"submit\" value=\"Logout\">" \
+				"</form>" \
+			"</li>" \
+		"</ul>" \
+	"</div>");
 	return p;
 }
 char *add_footer(char *p)

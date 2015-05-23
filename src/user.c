@@ -16,6 +16,7 @@ static struct user_struct super_user = { NULL, "Superuser", "Superuser", FID_ANY
 struct newuser_form_state {
 	int pos;
 	const struct formation_struct *f; /* formation iterator */
+	struct Request *request;
 };
 
 struct user_struct *auth_user(const char *username, const char *password)
@@ -54,7 +55,7 @@ static ssize_t newuser_form_reader(void *cls, uint64_t pos, char *buf, size_t ma
 
 	switch (nfs->pos) {
 	case 0:
-		p = add_header(p, "Benutzer hinzufügen");
+		p = add_header(p, "Benutzer hinzufügen", nfs->request);
 		p = stpcpy(p, "<div id=\"main\">" \
 			"<form action=\"/newuser\" method=\"POST\">" "<table><tr><td>Gliederung:</td><td><select name=\"fid\">");
 		nfs->pos++;
@@ -93,6 +94,7 @@ struct MHD_Response *newuser_form(struct Request *request)
 	struct newuser_form_state *nfs;
 	if (!(nfs = (struct newuser_form_state *)calloc(1, sizeof(struct newuser_form_state))))
 		return NULL;
+	nfs->request = request;
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &newuser_form_reader, nfs, &free);
 }
 
@@ -103,7 +105,7 @@ struct MHD_Response *welcome_form(struct Request *request)
   if (!(reply=malloc(MAXPAGESIZE)))
     return NULL;
 		
-	p = add_header(reply, "Willkommen");
+	p = add_header(reply, "Willkommen", request);
   p += sprintf(p, "<div id=\"main\"><p>Willkommen %s!</p></div>", request->session->logged_in->username);
 	p = add_footer(p);
 
@@ -116,7 +118,7 @@ struct MHD_Response *chpass_form(struct Request *request)
   if (!(reply=malloc(MAXPAGESIZE)))
     return NULL;
 		
-	p = add_header(reply, "Passwort ändern");
+	p = add_header(reply, "Passwort ändern", request);
   p = stpcpy(p, "<div id=\"main\">" \
 		"<p><form action=\"/chpass\" method=\"post\">" \
 		"Neues Passwort: <input name=\"newpassword\" type=\"password\" size=\"12\" maxlength=\"12\">" \
@@ -175,6 +177,7 @@ struct user_form_state {
 	int pos;
 	const struct user_struct *u; /* user iterator */
 	int fid; /* selector */
+	struct Request *request;
 };
 
 /*
@@ -191,7 +194,7 @@ static ssize_t user_form_reader(void *cls, uint64_t pos, char *buf, size_t max)
 
 	switch (ufs->pos) {
 	case 0:
-		p = add_header(p, "Benutzer");
+		p = add_header(p, "Benutzer", ufs->request);
 		p = stpcpy(p, "<div id=\"main\">" \
 			"<table><tr><th>Benutzername</th><th>Gliederung</th></tr>");
 		ufs->pos++;
@@ -229,5 +232,6 @@ struct MHD_Response *user_form(struct Request *request)
 	if (!(ufs = (struct user_form_state *)calloc(1, sizeof(struct user_form_state))))
 		return NULL;
 	ufs->fid = request->session->logged_in->fid;
+	ufs->request = request;
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &user_form_reader, ufs, &free);
 }

@@ -83,6 +83,7 @@ struct formation_form_state {
 	int pos;
 	const struct formation_struct *f; /* formation iterator */
 	int fid; /* selector */
+	struct Request *request;
 };
 
 /*
@@ -99,7 +100,7 @@ static ssize_t formation_form_reader(void *cls, uint64_t pos, char *buf, size_t 
 
 	switch (ffs->pos) {
 	case 0:
-		p = add_header(p, "Gliederungen");
+		p = add_header(p, "Gliederungen", ffs->request);
 		p = stpcpy(p, "<div id=\"main\"><table><tr><th>Gliederung</th><th>Mitglieder</th><th>Übergeordnete Gliederung</tr>");
 		ffs->pos++;
 		ffs->f = formation_list;
@@ -143,6 +144,7 @@ struct MHD_Response *formation_form(struct Request *request)
 	if (!(mfs = (struct formation_form_state *)calloc(1, sizeof(struct formation_form_state))))
 		return NULL;
 	mfs->fid = request->session->logged_in->fid;
+	mfs->request = request;
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &formation_form_reader, mfs, &free);
 }
 
@@ -150,6 +152,7 @@ struct newformation_form_state {
 	int pos;
 	const struct formation_struct *f; /* formation iterator */
 	int fid; /* selector */
+	struct Request *request;
 };
 
 /*
@@ -166,7 +169,7 @@ static ssize_t newformation_form_reader(void *cls, uint64_t pos, char *buf, size
 
 	switch (nfs->pos) {
 	case 0:
-		p = add_header(p, "Gliederung hinzufügen");
+		p = add_header(p, "Gliederung hinzufügen", nfs->request);
 		p = stpcpy(p, "<div id=\"main\">" \
 				"<form action=\"/newformation\" method=\"POST\">" \
 				"<table>" \
@@ -214,6 +217,7 @@ struct MHD_Response *newformation_form(struct Request *request)
 	if (!(nfs = (struct newformation_form_state *)calloc(1, sizeof(struct newformation_form_state))))
 		return NULL;
 	nfs->fid = request->session->logged_in->fid;
+	nfs->request = request;
 	return MHD_create_response_from_callback(-1, MAXPAGESIZE, &newformation_form_reader, nfs, &free);
 }
 
